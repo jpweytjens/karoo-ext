@@ -4,8 +4,6 @@
 
 [Quick Start & Docs](https://hammerheadnav.github.io/karoo-ext/index.html)
 
-[Jitpack Build](https://jitpack.io/#io.hammerhead/karoo-ext)
-
 ## Sample App
 
 Within [app/](app/), a sample application with Karoo Extensions is provided with

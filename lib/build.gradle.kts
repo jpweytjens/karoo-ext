@@ -68,8 +68,18 @@ dependencies {
 
 // To build an publish locally: gradle lib:assemblerelease lib:publishtomavenlocal
 publishing {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/hammerheadnav/karoo-ext")
+            credentials {
+                username = "hhbuildmachine"
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
     publications {
-        create<MavenPublication>("karoo-ext") {
+        register<MavenPublication>("karoo-ext") {
             artifactId = moduleName
             groupId = "io.hammerhead"
             version = libs.versions.library.get()
