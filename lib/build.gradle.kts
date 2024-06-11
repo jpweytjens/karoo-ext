@@ -42,13 +42,16 @@ android {
     }
 }
 
-tasks.dokkaJekyll.configure {
-    this.moduleName = moduleName
+tasks.dokkaHtml.configure {
+    moduleName = "karoo-ext"
+    moduleVersion = libs.versions.library.get()
     outputDirectory.set(rootDir.resolve("docs"))
 
     dokkaSourceSets {
         configureEach {
             skipEmptyPackages.set(true)
+            includeNonPublic.set(false)
+            includes.from("Module.md")
         }
     }
 }
@@ -66,7 +69,7 @@ dependencies {
 // To build an publish locally: gradle lib:assemblerelease lib:publishtomavenlocal
 publishing {
     publications {
-        create<MavenPublication>(moduleName) {
+        create<MavenPublication>("karoo-ext") {
             artifactId = moduleName
             groupId = "io.hammerhead"
             version = libs.versions.library.get()

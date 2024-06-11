@@ -2,9 +2,7 @@
 
 ## References
 
-[Quick Start](https://hammerheadnav.github.io/karoo-ext/index.html)
-
-[API Documentation](https://hammerheadnav.github.io/karoo-ext/docs/index.html)
+[Quick Start & Docs](https://hammerheadnav.github.io/karoo-ext/index.html)
 
 [Jitpack Build](https://jitpack.io/#io.hammerhead/karoo-ext)
 

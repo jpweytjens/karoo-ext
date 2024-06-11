@@ -1,6 +1,4 @@
----
-title: Quick Start
----
+# Module karoo-ext
 
 Karoo Extensions can easily be added to an existing Android application. If you
 don't already have an Android application, create a new Android project now.
@@ -60,7 +58,7 @@ necessary for implementations that want to interact with Karoo by receiving even
 
 #### Extension
 
-To enable your extension, create an Android service derived from [KarooExtension](karoo-ext/io.hammerhead.karooext.extension/-karoo-extension/index.md).
+To enable your extension, create an Android service derived from `KarooExtension`.
 
 ##### Registration
 
@@ -100,6 +98,3 @@ Extension Info XML resource (`extension_info.xml`):
     <DataType... />
 </ExtensionInfo>
 ```
-
-See [ExtensionInfo](karoo-ext/io.hammerhead.karooext.models/-extension-info/index.md).
-See [DataType](karoo-ext/io.hammerhead.karooext.models/-data-type/index.md).
