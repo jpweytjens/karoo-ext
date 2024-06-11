@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+# export GITHUB_USERNAME=<>
 # export GITHUB_TOKEN=<>
 
 PUBLIC_REMOTE=origin
@@ -23,16 +24,16 @@ esac
 
 sed -i '' "s/$current_version/$new_version/" gradle/libs.versions.toml
 sed -i '' "s/$current_version/$new_version/" lib/src/main/kotlin/io/hammerhead/karooext/Constants.kt
-sed -i '' "s/$current_version/$new_version/" lib/src/main/kotlin/io/hammerhead/karooext/module.md
+sed -i '' "s/$current_version/$new_version/" lib/Module.md
 sed -i '' "s/$current_version/$new_version/" README.md
 
 ./gradlew clean
 ./gradlew lib:assemblerelease
 ./gradlew app:assemblerelease
-./gradlew dokkaJekyll
+./gradlew dokkaHtml
 
 # Tagging and publishing
-git add gradle/libs.versions.toml lib/src/main/kotlin/io/hammerhead/karooext/Constants.kt README.md docs
+git add gradle/libs.versions.toml lib/Module.md lib/src/main/kotlin/io/hammerhead/karooext/Constants.kt README.md docs
 git commit -m "karoo-ext release $new_version"
 git tag $new_version
 git push $PUBLIC_REMOTE
