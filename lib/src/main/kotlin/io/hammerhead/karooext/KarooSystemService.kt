@@ -171,7 +171,6 @@ class KarooSystemService(private val context: Context) {
             }
 
             override fun unregister(controller: IKarooSystem?) {
-                controller?.removeEventConsumer(id)
             }
         })
     }
