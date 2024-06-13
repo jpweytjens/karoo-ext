@@ -39,4 +39,25 @@ data class Device(
      * Human recognizable name of this device
      */
     val displayName: String,
-)
+) {
+    val deviceUid: String
+        get() = "$extension$SEPARATOR$uid"
+
+    companion object {
+        /**
+         * Parse full device id string into extension/uid parts
+         *
+         * @return Pair(extension, uid)
+         */
+        fun fromDeviceUid(deviceUid: String): Pair<String, String>? {
+            val parts = deviceUid.split(SEPARATOR)
+            return if (parts.size == 2) {
+                return Pair(parts[0], parts[1])
+            } else {
+                null
+            }
+        }
+
+        private const val SEPARATOR = "::"
+    }
+}

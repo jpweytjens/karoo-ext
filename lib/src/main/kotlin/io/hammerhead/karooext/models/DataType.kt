@@ -33,16 +33,6 @@ data class DataType(
 ) {
     companion object {
         /**
-         * @suppress
-         */
-        const val TYPE_EXT = "TYPE_EXT"
-
-        /**
-         * @suppress
-         */
-        const val TYPE_EXT_SEPARATOR = "::"
-
-        /**
          * Heart rate: includes a single required numeric field [Field.HEART_RATE]
          */
         const val HEART_RATE = "TYPE_HEART_RATE_ID"
@@ -106,7 +96,7 @@ data class DataType(
          * Construct full data type id from extension id and type id.
          */
         fun dataTypeId(extension: String, typeId: String): String {
-            return "$TYPE_EXT$TYPE_EXT_SEPARATOR$extension$TYPE_EXT_SEPARATOR$typeId"
+            return "TYPE_EXT$SEPARATOR$extension$SEPARATOR$typeId"
         }
 
         /**
@@ -117,8 +107,9 @@ data class DataType(
          * @return Pair(extension, typeId)
          */
         fun fromDataType(dataTypeId: String): Pair<String, String>? {
-            return if (dataTypeId.startsWith(TYPE_EXT)) {
-                val parts = dataTypeId.removePrefix("$TYPE_EXT$TYPE_EXT_SEPARATOR").split(TYPE_EXT_SEPARATOR)
+            return if (dataTypeId.contains(SEPARATOR)) {
+                val start = "TYPE_EXT$SEPARATOR"
+                val parts = dataTypeId.removePrefix(start).split(SEPARATOR)
                 if (parts.size == 2) {
                     return Pair(parts[0], parts[1])
                 } else {
@@ -128,5 +119,10 @@ data class DataType(
                 null
             }
         }
+
+        /**
+         * @suppress
+         */
+        private const val SEPARATOR = "::"
     }
 }
