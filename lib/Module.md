@@ -26,7 +26,7 @@ dependencyResolutionManagement {
 Add `karoo-ext` dependency:
 
 ```
-implementation("io.hammerhead:karoo-ext:1.0.1")
+implementation("io.hammerhead:karoo-ext:1.0.2")
 ```
 
 ### Karoo System Service

@@ -73,9 +73,12 @@ $dokka.location:io.hammerhead.karooext.models/DataType/extension/#/PointingToDec
 $dokka.location:io.hammerhead.karooext.models/DataType/graphical/#/PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-data-type/graphical.html
 $dokka.location:io.hammerhead.karooext.models/DataType/icon/#/PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-data-type/icon.html
 $dokka.location:io.hammerhead.karooext.models/DataType/typeId/#/PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-data-type/type-id.html
+$dokka.location:io.hammerhead.karooext.models/Device.Companion///PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-device/-companion/index.html
+$dokka.location:io.hammerhead.karooext.models/Device.Companion/fromDeviceUid/#kotlin.String/PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-device/-companion/from-device-uid.html
 $dokka.location:io.hammerhead.karooext.models/Device///PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-device/index.html
 $dokka.location:io.hammerhead.karooext.models/Device/Device/#kotlin.String#kotlin.String#kotlin.collections.List[kotlin.String]#kotlin.String/PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-device/-device.html
 $dokka.location:io.hammerhead.karooext.models/Device/dataTypes/#/PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-device/data-types.html
+$dokka.location:io.hammerhead.karooext.models/Device/deviceUid/#/PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-device/device-uid.html
 $dokka.location:io.hammerhead.karooext.models/Device/displayName/#/PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-device/display-name.html
 $dokka.location:io.hammerhead.karooext.models/Device/extension/#/PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-device/extension.html
 $dokka.location:io.hammerhead.karooext.models/Device/uid/#/PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-device/uid.html
