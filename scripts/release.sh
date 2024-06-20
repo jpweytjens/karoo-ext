@@ -31,12 +31,13 @@ sed -i '' "s/$current_version/$new_version/" README.md
 ./gradlew lib:assemblerelease
 ./gradlew app:assemblerelease
 ./gradlew dokkaHtml
+./gradlew publish
 
-# Tagging and publishing
+# Tagging and pushing
 git add gradle/libs.versions.toml lib/Module.md lib/src/main/kotlin/io/hammerhead/karooext/Constants.kt README.md docs
 git commit -m "karoo-ext release $new_version"
 git tag $new_version
+
 git push $PUBLIC_REMOTE
 git push $PUBLIC_REMOTE $new_version
 
-./gradlew publish

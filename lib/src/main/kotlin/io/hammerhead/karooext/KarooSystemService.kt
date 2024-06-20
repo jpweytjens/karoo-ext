@@ -28,6 +28,8 @@ import io.hammerhead.karooext.aidl.IKarooSystem
 import io.hammerhead.karooext.internal.KarooSystemListener
 import io.hammerhead.karooext.internal.bundleWithSerializable
 import io.hammerhead.karooext.internal.createConsumer
+import io.hammerhead.karooext.internal.serializableFromBundle
+import io.hammerhead.karooext.models.HardwareType
 import io.hammerhead.karooext.models.KarooEffect
 import io.hammerhead.karooext.models.KarooEvent
 import io.hammerhead.karooext.models.KarooEventParams
@@ -94,6 +96,14 @@ class KarooSystemService(private val context: Context) {
      */
     val libVersion: String?
         get() = controller?.libVersion()
+
+    /**
+     * Get the hardware type running the Karoo System
+     *
+     * @see [HardwareType]
+     */
+    val hardwareType: HardwareType?
+        get() = controller?.hardwareType()?.serializableFromBundle<HardwareType>()
 
     /**
      * Send a [KarooEffect] to the Karoo System service for handling.

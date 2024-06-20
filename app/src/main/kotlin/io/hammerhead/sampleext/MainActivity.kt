@@ -26,6 +26,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataType
+import io.hammerhead.karooext.models.HardwareType
 import io.hammerhead.karooext.models.Lap
 import io.hammerhead.karooext.models.OnStreamState
 import io.hammerhead.karooext.models.PerformHardwareAction
@@ -107,10 +108,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun playBeeps() {
-        val tempo = 108
-        val wholeNote = (60000 * 4) / tempo
-        val dispatched = karooSystem.dispatch(
-            PlayBeepPattern(
+        val tones = when (karooSystem.hardwareType) {
+            // K2 beeper is limited in audible frequency and duration
+            // so demonstrate a pattern that is similar to the system patterns.
+            HardwareType.K2 -> {
+                listOf(
+                    PlayBeepPattern.Tone(5000, 200),
+                    PlayBeepPattern.Tone(null, 50),
+                    PlayBeepPattern.Tone(5000, 200),
+                    PlayBeepPattern.Tone(null, 50),
+                    PlayBeepPattern.Tone(5000, 250),
+                    PlayBeepPattern.Tone(null, 100),
+                    PlayBeepPattern.Tone(4000, 350),
+                )
+            }
+            // Karoo can more accurately play frequencies for longer durations,
+            // demonstrate that here.
+            HardwareType.KAROO -> {
+                val tempo = 108
+                val wholeNote = (60000 * 4) / tempo
                 listOf(
                     PlayBeepPattern.Tone(466, wholeNote / 8),
                     PlayBeepPattern.Tone(466, wholeNote / 8),
@@ -131,9 +147,11 @@ class MainActivity : AppCompatActivity() {
                     PlayBeepPattern.Tone(880, wholeNote / 8),
                     PlayBeepPattern.Tone(932, wholeNote / 8),
                     PlayBeepPattern.Tone(784, wholeNote / 2),
-                ),
-            ),
-        )
+                )
+            }
+            else -> return
+        }
+        val dispatched = karooSystem.dispatch(PlayBeepPattern(tones))
         Timber.d("Karoo System dispatched beeps=$dispatched")
     }
 
