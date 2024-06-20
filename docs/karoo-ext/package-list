@@ -111,6 +111,12 @@ $dokka.location:io.hammerhead.karooext.models/Field/SHIFTING_BATTERY_STATUS_RD/#
 $dokka.location:io.hammerhead.karooext.models/Field/SINGLE/#/PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-field/-s-i-n-g-l-e.html
 $dokka.location:io.hammerhead.karooext.models/Field/SPEED/#/PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-field/-s-p-e-e-d.html
 $dokka.location:io.hammerhead.karooext.models/Field/TIRE_PRESSURE/#/PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-field/-t-i-r-e_-p-r-e-s-s-u-r-e.html
+$dokka.location:io.hammerhead.karooext.models/HardwareType.K2///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}karoo-ext/io.hammerhead.karooext.models/-hardware-type/-k2/index.html
+$dokka.location:io.hammerhead.karooext.models/HardwareType.KAROO///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}karoo-ext/io.hammerhead.karooext.models/-hardware-type/-k-a-r-o-o/index.html
+$dokka.location:io.hammerhead.karooext.models/HardwareType///PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-hardware-type/index.html
+$dokka.location:io.hammerhead.karooext.models/HardwareType/entries/#/PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-hardware-type/entries.html
+$dokka.location:io.hammerhead.karooext.models/HardwareType/valueOf/#kotlin.String/PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-hardware-type/value-of.html
+$dokka.location:io.hammerhead.karooext.models/HardwareType/values/#/PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-hardware-type/values.html
 $dokka.location:io.hammerhead.karooext.models/KarooEffect///PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-karoo-effect/index.html
 $dokka.location:io.hammerhead.karooext.models/KarooEvent///PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-karoo-event/index.html
 $dokka.location:io.hammerhead.karooext.models/KarooEventParams///PointingToDeclaration/karoo-ext/io.hammerhead.karooext.models/-karoo-event-params/index.html
@@ -200,6 +206,7 @@ $dokka.location:io.hammerhead.karooext/KarooSystemService/addConsumer/#io.hammer
 $dokka.location:io.hammerhead.karooext/KarooSystemService/addConsumer/#kotlin.Function1[kotlin.String,kotlin.Unit]?#kotlin.Function0[kotlin.Unit]?#kotlin.Function1[TypeParam(bounds=[io.hammerhead.karooext.models.KarooEvent]),kotlin.Unit]/PointingToDeclaration/karoo-ext/io.hammerhead.karooext/-karoo-system-service/add-consumer.html
 $dokka.location:io.hammerhead.karooext/KarooSystemService/connected/#/PointingToDeclaration/karoo-ext/io.hammerhead.karooext/-karoo-system-service/connected.html
 $dokka.location:io.hammerhead.karooext/KarooSystemService/dispatch/#io.hammerhead.karooext.models.KarooEffect/PointingToDeclaration/karoo-ext/io.hammerhead.karooext/-karoo-system-service/dispatch.html
+$dokka.location:io.hammerhead.karooext/KarooSystemService/hardwareType/#/PointingToDeclaration/karoo-ext/io.hammerhead.karooext/-karoo-system-service/hardware-type.html
 $dokka.location:io.hammerhead.karooext/KarooSystemService/libVersion/#/PointingToDeclaration/karoo-ext/io.hammerhead.karooext/-karoo-system-service/lib-version.html
 $dokka.location:io.hammerhead.karooext/KarooSystemService/registerConnectionListener/#kotlin.Function1[kotlin.Boolean,kotlin.Unit]/PointingToDeclaration/karoo-ext/io.hammerhead.karooext/-karoo-system-service/register-connection-listener.html
 $dokka.location:io.hammerhead.karooext/KarooSystemService/removeConsumer/#kotlin.String/PointingToDeclaration/karoo-ext/io.hammerhead.karooext/-karoo-system-service/remove-consumer.html
