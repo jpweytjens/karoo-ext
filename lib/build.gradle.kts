@@ -15,6 +15,8 @@ android {
 
     defaultConfig {
         minSdk = 23
+
+        buildConfigField("String", "LIB_VERSION", "\"$libVersion\"")
     }
 
     buildTypes {
@@ -32,6 +34,7 @@ android {
     }
 
     buildFeatures {
+        buildConfig = true
         aidl = true
     }
 

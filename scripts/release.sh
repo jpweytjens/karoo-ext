@@ -9,7 +9,7 @@ BRANCH=master
 git checkout $BRANCH
 echo "Pulling current from $PUBLIC_REMOTE/$BRANCH"
 git pull $PUBLIC_REMOTE $BRANCH > /dev/null
-current_version=$(grep library gradle/libs.versions.toml | sed -e 's/.*"\(.*\)".*/\1/' | head -n 1)
+current_version=$(grep libVersion lib/build.gradle.kts | sed -e 's/.*"\(.*\)".*/\1/' | head -n 1)
 
 echo "Current version: $current_version"
 echo -n "Enter new version: "
@@ -22,8 +22,7 @@ case "$answer" in
    * ) echo "Aborting karoo-ext release"; exit 1;;
 esac
 
-sed -i '' "s/$current_version/$new_version/" gradle/libs.versions.toml
-sed -i '' "s/$current_version/$new_version/" lib/src/main/kotlin/io/hammerhead/karooext/Constants.kt
+sed -i '' "s/$current_version/$new_version/" lib/build.gradle.kts
 sed -i '' "s/$current_version/$new_version/" lib/Module.md
 sed -i '' "s/$current_version/$new_version/" README.md
 
