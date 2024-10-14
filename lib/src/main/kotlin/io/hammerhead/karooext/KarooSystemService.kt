@@ -20,9 +20,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.os.Handler
 import android.os.IBinder
-import android.os.Looper
 import android.os.RemoteException
 import io.hammerhead.karooext.aidl.IKarooSystem
 import io.hammerhead.karooext.internal.KarooSystemListener
@@ -36,6 +34,7 @@ import io.hammerhead.karooext.models.KarooEventParams
 import io.hammerhead.karooext.models.KarooInfo
 import io.hammerhead.karooext.models.Lap
 import io.hammerhead.karooext.models.RideState
+import io.hammerhead.karooext.models.UserProfile
 import timber.log.Timber
 import java.util.concurrent.ConcurrentHashMap
 
@@ -45,45 +44,82 @@ import java.util.concurrent.ConcurrentHashMap
 class KarooSystemService(private val context: Context) {
     private val listeners = ConcurrentHashMap<String, KarooSystemListener>()
     private var controller: IKarooSystem? = null
-    private val handler = Handler(Looper.getMainLooper())
+
+    /**
+     * @suppress
+     */
+    val packageName: String by lazy { context.packageName }
 
     private val serviceConnection = object : ServiceConnection {
-        override fun onServiceConnected(className: ComponentName, service: IBinder) {
+        override fun onServiceConnected(name: ComponentName, service: IBinder) {
             val controller = IKarooSystem.Stub.asInterface(service)
             try {
                 Timber.i("$TAG: connected with libVersion=${controller.libVersion()}")
             } catch (e: RemoteException) {
                 Timber.w("$TAG: error connecting ${e.message}")
             }
+            this@KarooSystemService.controller = controller
             listeners.forEach { (_, listener) ->
                 listener.register(controller)
             }
-            this@KarooSystemService.controller = controller
         }
 
-        override fun onServiceDisconnected(className: ComponentName) {
-            unbindService()
+        override fun onServiceDisconnected(name: ComponentName) {
             Timber.i("$TAG: disconnected")
+            clearController()
+        }
+
+        override fun onBindingDied(name: ComponentName) {
+            Timber.w("$TAG: binding died")
+            clearController()
+            context.unbindService(this)
+            connect()
+        }
+
+        private fun clearController() {
+            this@KarooSystemService.controller = null
             listeners.forEach { (_, listener) ->
                 listener.register(null)
             }
-            this@KarooSystemService.controller = null
-            handler.postDelayed({
-                bindService()
-            }, 2000)
         }
     }
 
-    private fun bindService() {
+    /**
+     * Connect to KarooSystem
+     */
+    fun connect(
+        /**
+         * Callback for when Karoo system connects and disconnects
+         */
+        onConnection: ((Boolean) -> Unit)? = null,
+    ) {
+        Timber.i("$TAG: binding to KarooSystem")
         val intent = Intent()
         intent.component = ComponentName.createRelative("io.hammerhead.appstore", ".service.AppStoreService")
         intent.action = "KarooSystem"
-        intent.putExtra("caller", context.packageName)
+        intent.putExtra(BUNDLE_PACKAGE, packageName)
         context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+        onConnection?.let {
+            addConsumer(object : KarooSystemListener() {
+                override fun register(controller: IKarooSystem?) {
+                    onConnection(controller != null)
+                }
+
+                override fun unregister(controller: IKarooSystem?) {
+                }
+            })
+        }
     }
 
-    private fun unbindService() {
+    /**
+     * Disconnect from KarooSystem and unregister all consumers
+     */
+    fun disconnect() {
+        listeners.forEach { (id, _) ->
+            removeConsumer(id)
+        }
         context.unbindService(serviceConnection)
+        controller = null
     }
 
     /**
@@ -126,7 +162,7 @@ class KarooSystemService(private val context: Context) {
      */
     fun dispatch(effect: KarooEffect): Boolean {
         return controller?.let {
-            it.dispatchEffect(effect.bundleWithSerializable())
+            it.dispatchEffect(effect.bundleWithSerializable(packageName))
             true
         } ?: false
     }
@@ -150,7 +186,7 @@ class KarooSystemService(private val context: Context) {
         val consumer = createConsumer<T>(onEvent, onError, onComplete)
         return addConsumer(object : KarooSystemListener() {
             override fun register(controller: IKarooSystem?) {
-                controller?.addEventConsumer(id, params.bundleWithSerializable(), consumer)
+                controller?.addEventConsumer(id, params.bundleWithSerializable(packageName), consumer)
             }
 
             override fun unregister(controller: IKarooSystem?) {
@@ -176,26 +212,10 @@ class KarooSystemService(private val context: Context) {
         val params: KarooEventParams = when (T::class) {
             RideState::class -> RideState.Params
             Lap::class -> Lap.Params
+            UserProfile::class -> UserProfile.Params
             else -> throw IllegalArgumentException("No default KarooEventParams for ${T::class}")
         }
         return addConsumer<T>(params, onError, onComplete, onEvent)
-    }
-
-    /**
-     * Register to be called when the Karoo System connects.
-     *
-     * @return `consumerId` to be removed on teardown
-     * @see [removeConsumer]
-     */
-    fun registerConnectionListener(onConnection: (Boolean) -> Unit): String {
-        return addConsumer(object : KarooSystemListener() {
-            override fun register(controller: IKarooSystem?) {
-                onConnection(controller != null)
-            }
-
-            override fun unregister(controller: IKarooSystem?) {
-            }
-        })
     }
 
     /**
@@ -205,9 +225,6 @@ class KarooSystemService(private val context: Context) {
         val listener = listeners.remove(consumerId)
         Timber.d("$TAG: removeConsumer $consumerId=$listener")
         listener?.unregister(controller)
-        if (listener != null && listeners.isEmpty()) {
-            unbindService()
-        }
     }
 
     /**
@@ -216,11 +233,7 @@ class KarooSystemService(private val context: Context) {
     fun addConsumer(listener: KarooSystemListener): String {
         Timber.d("$TAG: addConsumer ${listener.id}=$listener")
         listeners[listener.id] = listener
-        if (listeners.size == 1) {
-            bindService()
-        } else {
-            controller?.let { listener.register(it) }
-        }
+        controller?.let { listener.register(it) }
         return listener.id
     }
 

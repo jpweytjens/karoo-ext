@@ -25,6 +25,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import io.hammerhead.karooext.KarooSystemService
+import io.hammerhead.karooext.models.ApplyLauncherBackground
 import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.HardwareType
 import io.hammerhead.karooext.models.Lap
@@ -33,6 +34,8 @@ import io.hammerhead.karooext.models.PerformHardwareAction
 import io.hammerhead.karooext.models.PlayBeepPattern
 import io.hammerhead.karooext.models.RideState
 import io.hammerhead.karooext.models.StreamState
+import io.hammerhead.karooext.models.SystemNotification
+import io.hammerhead.karooext.models.UserProfile
 import io.hammerhead.sampleext.databinding.ActivityMainBinding
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -44,7 +47,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
     private val karooSystem = KarooSystemService(this)
-    private val listenerIds = mutableListOf<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,43 +69,55 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        binding.backgroundButton.setOnClickListener {
+            karooSystem.dispatch(
+                ApplyLauncherBackground(
+                    "https://images.unsplash.com/photo-1590146758147-74a80644616a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w1MDI2Mjh8MHwxfHNlYXJjaHw4fHxwdXp6bGV8ZW58MHwwfHx8MTcyNzg3NjMwMnww&ixlib=rb-4.0.3&q=80&w=1080",
+                ),
+            )
+        }
+
+        binding.notificationButton.setOnClickListener {
+            karooSystem.dispatch(
+                SystemNotification(
+                    "sample-clicked",
+                    "You did it!",
+                    "You clicked the notify button in the sample.",
+                ),
+            )
+        }
+
         binding.beepButton.setOnClickListener {
             playBeeps()
         }
 
-        setupHardwareActionListeners()
+        binding.ccButton.setOnClickListener {
+            karooSystem.dispatch(PerformHardwareAction.ControlCenterComboPress)
+        }
     }
 
     override fun onStart() {
         super.onStart()
-        listenerIds.add(
-            karooSystem.addConsumer(OnStreamState.StartStreaming(DataType.POWER)) { event: OnStreamState ->
-                viewModel.updatePower(event.state)
-            },
-        )
-        listenerIds.add(
-            karooSystem.addConsumer { rideState: RideState ->
-                viewModel.updateRideState(rideState)
-            },
-        )
-        listenerIds.add(
-            karooSystem.addConsumer { lap: Lap ->
-                Toast.makeText(this, "Lap ${lap.number}!", Toast.LENGTH_SHORT).show()
-            },
-        )
-        listenerIds.add(
-            karooSystem.registerConnectionListener { connected ->
-                Timber.d("Karoo System connected=$connected")
-                viewModel.updateConnected(connected)
-            },
-        )
+        karooSystem.connect { connected ->
+            Timber.i("Karoo System connected=$connected")
+            viewModel.updateConnected(connected)
+        }
+        karooSystem.addConsumer(OnStreamState.StartStreaming(DataType.Type.POWER)) { event: OnStreamState ->
+            viewModel.updatePower(event.state)
+        }
+        karooSystem.addConsumer { rideState: RideState ->
+            viewModel.updateRideState(rideState)
+        }
+        karooSystem.addConsumer { lap: Lap ->
+            Toast.makeText(this, "Lap ${lap.number}!", Toast.LENGTH_SHORT).show()
+        }
+        karooSystem.addConsumer { user: UserProfile ->
+            Timber.i("User profile loaded as $user")
+        }
     }
 
     override fun onStop() {
-        listenerIds.forEach {
-            karooSystem.removeConsumer(it)
-        }
-        listenerIds.clear()
+        karooSystem.disconnect()
         super.onStop()
     }
 
@@ -153,13 +167,5 @@ class MainActivity : AppCompatActivity() {
         }
         val dispatched = karooSystem.dispatch(PlayBeepPattern(tones))
         Timber.d("Karoo System dispatched beeps=$dispatched")
-    }
-
-    private fun setupHardwareActionListeners() {
-        binding.topLeftButton.setOnClickListener { karooSystem.dispatch(PerformHardwareAction.TopLeftPress) }
-        binding.topRightButton.setOnClickListener { karooSystem.dispatch(PerformHardwareAction.TopRightPress) }
-        binding.bottomLeftButton.setOnClickListener { karooSystem.dispatch(PerformHardwareAction.BottomLeftPress) }
-        binding.bottomRightButton.setOnClickListener { karooSystem.dispatch(PerformHardwareAction.BottomRightPress) }
-        binding.ccButton.setOnClickListener { karooSystem.dispatch(PerformHardwareAction.ControlCenterComboPress) }
     }
 }

@@ -21,7 +21,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.IBinder
 import io.hammerhead.karooext.EXT_LIB_VERSION
-import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.aidl.IHandler
 import io.hammerhead.karooext.aidl.IKarooExtension
 import io.hammerhead.karooext.internal.Emitter
@@ -49,7 +48,6 @@ abstract class KarooExtension(
      */
     val version: String,
 ) : Service() {
-    val karooSystem by lazy { KarooSystemService(this) }
     private val emitters = ConcurrentHashMap<String, Emitter<*>>()
 
     /**
@@ -67,7 +65,7 @@ abstract class KarooExtension(
             }
 
             override fun startScan(id: String, handler: IHandler) {
-                val emitter = Emitter.create<Device>(handler)
+                val emitter = Emitter.create<Device>(packageName, handler)
                 emitters[id] = emitter
                 Timber.d("$TAG: startScan $id")
                 startScan(emitter)
@@ -79,7 +77,7 @@ abstract class KarooExtension(
             }
 
             override fun connectDevice(id: String, uid: String, handler: IHandler) {
-                val emitter = Emitter.create<DeviceEvent>(handler)
+                val emitter = Emitter.create<DeviceEvent>(packageName, handler)
                 emitters[id] = emitter
                 Timber.d("$TAG: connectDevice $id $uid")
                 connectDevice(uid, emitter)
@@ -92,10 +90,10 @@ abstract class KarooExtension(
 
             override fun startStream(id: String, typeId: String, handler: IHandler) {
                 types.firstOrNull { it.typeId == typeId }?.let {
-                    val emitter = Emitter.create<StreamState>(handler)
+                    val emitter = Emitter.create<StreamState>(packageName, handler)
                     emitters[id] = emitter
                     Timber.d("$TAG: startStream $id $typeId")
-                    it.startStream(this@KarooExtension, emitter)
+                    it.startStream(emitter)
                 }
             }
 
@@ -107,7 +105,7 @@ abstract class KarooExtension(
             override fun startView(id: String, typeId: String, config: Bundle, handler: IHandler) {
                 val viewConfig = config.serializableFromBundle<ViewConfig>() ?: return
                 types.firstOrNull { it.typeId == typeId }?.let {
-                    val emitter = ViewEmitter(handler)
+                    val emitter = ViewEmitter(packageName, handler)
                     emitters[id] = emitter
                     Timber.d("$TAG: startView $id $typeId")
                     it.startView(this@KarooExtension, viewConfig, emitter)

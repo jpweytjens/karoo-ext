@@ -16,20 +16,38 @@
 
 package io.hammerhead.sampleext.extension
 
+import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.KarooExtension
 import io.hammerhead.karooext.internal.Emitter
+import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.Device
 import io.hammerhead.karooext.models.DeviceEvent
+import io.hammerhead.karooext.models.InRideAlert
+import io.hammerhead.karooext.models.MarkLap
+import io.hammerhead.karooext.models.StreamState
+import io.hammerhead.karooext.models.SystemNotification
+import io.hammerhead.karooext.models.UserProfile
+import io.hammerhead.sampleext.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 
 class SampleExtension : KarooExtension("sample", "1.0") {
+    private val karooSystem by lazy { KarooSystemService(this) }
+
+    private var serviceJob: Job? = null
+
     override val types by lazy {
         listOf(
-            PowerHrDataType(extension),
-            CustomSpeedDataType(extension),
+            PowerHrDataType(karooSystem, extension),
+            CustomSpeedDataType(karooSystem, extension),
         )
     }
 
@@ -49,5 +67,59 @@ class SampleExtension : KarooExtension("sample", "1.0") {
 
     override fun connectDevice(uid: String, emitter: Emitter<DeviceEvent>) {
         StaticHrSource.fromUid(extension, uid)?.connect(emitter)
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        serviceJob = CoroutineScope(Dispatchers.IO).launch {
+            karooSystem.connect { connected ->
+                if (connected) {
+                    karooSystem.dispatch(
+                        SystemNotification(
+                            "sample-started",
+                            "Sample extension started",
+                            action = "See it",
+                            actionIntent = "io.hammerhead.sampleext.MAIN",
+                        ),
+                    )
+                }
+            }
+            // Mark a lap and show an in-ride alert every mile/km
+            val userProfile = karooSystem.consumerFlow<UserProfile>().first()
+            karooSystem.streamDataFlow(DataType.Type.DISTANCE)
+                .mapNotNull { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
+                // meters to user's preferred unit system (mi or km)
+                .map {
+                    when (userProfile.preferredUnit.distance) {
+                        UserProfile.PreferredUnit.UnitType.METRIC -> it / 1000
+                        UserProfile.PreferredUnit.UnitType.IMPERIAL -> it / 1609.345
+                    }.toInt()
+                }
+                // each unique kilometer
+                .distinctUntilChanged()
+                // only emit on change (exclude initial value)
+                .drop(1)
+                .collect {
+                    karooSystem.dispatch(
+                        InRideAlert(
+                            id = "distance-marker",
+                            icon = R.drawable.ic_sample,
+                            title = getString(R.string.alert_title),
+                            detail = getString(R.string.alert_detail, it),
+                            autoDismissMs = 10_000,
+                            backgroundColor = R.color.green,
+                            textColor = R.color.light_green,
+                        ),
+                    )
+                    karooSystem.dispatch(MarkLap)
+                }
+        }
+    }
+
+    override fun onDestroy() {
+        serviceJob?.cancel()
+        serviceJob = null
+        karooSystem.disconnect()
+        super.onDestroy()
     }
 }

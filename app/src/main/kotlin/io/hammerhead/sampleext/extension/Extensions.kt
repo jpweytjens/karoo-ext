@@ -1,7 +1,7 @@
 package io.hammerhead.sampleext.extension
 
-import android.content.Context
-import io.hammerhead.karooext.extension.KarooExtension
+import io.hammerhead.karooext.KarooSystemService
+import io.hammerhead.karooext.models.KarooEvent
 import io.hammerhead.karooext.models.OnStreamState
 import io.hammerhead.karooext.models.StreamState
 import kotlinx.coroutines.channels.awaitClose
@@ -9,13 +9,24 @@ import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 
-fun Context.streamDataFlow(dataTypeId: String): Flow<StreamState> {
+fun KarooSystemService.streamDataFlow(dataTypeId: String): Flow<StreamState> {
     return callbackFlow {
-        val listenerId = (this@streamDataFlow as KarooExtension).karooSystem.addConsumer(OnStreamState.StartStreaming(dataTypeId)) { event: OnStreamState ->
+        val listenerId = addConsumer(OnStreamState.StartStreaming(dataTypeId)) { event: OnStreamState ->
             trySendBlocking(event.state)
         }
         awaitClose {
-            this@streamDataFlow.karooSystem.removeConsumer(listenerId)
+            removeConsumer(listenerId)
+        }
+    }
+}
+
+inline fun <reified T : KarooEvent> KarooSystemService.consumerFlow(): Flow<T> {
+    return callbackFlow {
+        val listenerId = addConsumer<T> {
+            trySend(it)
+        }
+        awaitClose {
+            removeConsumer(listenerId)
         }
     }
 }
