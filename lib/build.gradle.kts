@@ -11,7 +11,7 @@ val libVersion = "1.1.0"
 
 android {
     namespace = "io.hammerhead.karooext"
-    compileSdk = 28
+    compileSdk = 34
 
     defaultConfig {
         minSdk = 23
@@ -49,12 +49,14 @@ tasks.dokkaHtml.configure {
     moduleName = "karoo-ext"
     moduleVersion = libVersion
     outputDirectory.set(rootDir.resolve("docs"))
+    suppressInheritedMembers = true
 
     dokkaSourceSets {
         configureEach {
             skipEmptyPackages.set(true)
             includeNonPublic.set(false)
             includes.from("Module.md")
+            samples.from("src/test/kotlin/samples.kt")
         }
     }
 }
