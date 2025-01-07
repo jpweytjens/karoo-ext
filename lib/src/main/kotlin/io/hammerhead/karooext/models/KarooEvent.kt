@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 SRAM LLC.
+ * Copyright (c) 2025 SRAM LLC.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,10 @@
 
 package io.hammerhead.karooext.models
 
+import io.hammerhead.karooext.models.OnHttpResponse.MakeHttpRequest
+import io.hammerhead.karooext.models.OnStreamState.StartStreaming
+import io.hammerhead.karooext.models.UserProfile.PreferredUnit
+import io.hammerhead.karooext.models.UserProfile.Zone
 import kotlinx.serialization.Serializable
 
 /**
@@ -247,4 +251,179 @@ data class OnHttpResponse(val state: HttpResponseState) : KarooEvent() {
         // 100KB maximum for request/response body
         const val MAX_REQUEST_SIZE = 100_000
     }
+}
+
+/**
+ * Observe the current position and orientation
+ */
+@Serializable
+data class OnLocationChanged(
+    /**
+     * Latitude of current position
+     */
+    val lat: Double,
+    /**
+     * Longitude of current position
+     */
+    val lng: Double,
+    /**
+     * Current orientation, heading, direction
+     *
+     * - 0 is North, 180 is South
+     */
+    val orientation: Double?,
+) : KarooEvent() {
+
+    /**
+     * Default params for [OnLocationChanged] event listener
+     */
+    @Serializable
+    data object Params : KarooEventParams()
+}
+
+/**
+ * Observe the rider's POIs save to their account
+ *
+ * @see [Symbol.POI]
+ */
+@Serializable
+data class OnGlobalPOIs(
+    /**
+     * List of POIs
+     *
+     * @see [Symbol.POI]
+     */
+    val pois: List<Symbol.POI>,
+) : KarooEvent() {
+
+    /**
+     * Default params for [OnGlobalPOIs] event listener
+     */
+    @Serializable
+    data object Params : KarooEventParams()
+}
+
+/**
+ * Observe the state of navigation: route selection or destination
+ */
+@Serializable
+data class OnNavigationState(
+    /**
+     * Current state
+     *
+     * @see [NavigationState]
+     */
+    val state: NavigationState,
+) : KarooEvent() {
+    /**
+     * Encapsulation of navigation state options
+     */
+    @Serializable
+    sealed class NavigationState {
+        /**
+         * No navigation is currently running
+         */
+        @Serializable
+        data object Idle : NavigationState()
+
+        /**
+         * Navigating a saved route
+         */
+        @Serializable
+        data class NavigatingRoute(
+            /**
+             * Google encoded polyline, precision 5, of the selected route.
+             */
+            val routePolyline: String,
+            /**
+             * Distance (in meters) of the full route.
+             */
+            val routeDistance: Double,
+            /**
+             * Google encoded polyline, precision 5, of the path to navigate back to the route.
+             *
+             * Null when on route or off route and using breadcrumb navigation.
+             */
+            val rejoinPolyline: String?,
+            /**
+             * Distance along `routePolyline` that `rejoinPolyline` meets.
+             */
+            val rejoinDistance: Double?,
+            /**
+             * Name of the route
+             */
+            val name: String,
+            /**
+             * Whether navigating in reverse
+             */
+            val reversed: Boolean,
+            /**
+             * If breadcrumb navigation is being used (disabled turn-by-turn)
+             */
+            val breadcrumb: Boolean,
+            /**
+             * POIs associated with the route
+             *
+             * @see [Symbol.POI] [OnGlobalPOIs]
+             */
+            val pois: List<Symbol.POI>,
+        ) : NavigationState() {
+            /**
+             * @suppress
+             */
+            override fun toString(): String {
+                return "NavigatingRoute($name, routePolyline=[${routePolyline.length}], routeDistance=$routeDistance, rejoinPolyline=[${rejoinPolyline?.length}], rejoinDistance=$rejoinDistance, reversed=$reversed, breadcrumb=$breadcrumb, pois=${pois.map { "POI(${it.name ?: it.type})" }})"
+            }
+        }
+
+        /**
+         * Navigation to a destination POI
+         */
+        @Serializable
+        data class NavigatingToDestination(
+            /**
+             * Destination the rider selected to navigate to.
+             */
+            val destination: Symbol.POI,
+            /**
+             * The polyline from the rider's original location to the destination.
+             *
+             * This will change if the rider deviates from the previous suggested path to the destination.
+             */
+            val polyline: String,
+        ) : NavigationState() {
+            /**
+             * @suppress
+             */
+            override fun toString(): String {
+                return "NavigatingToDestination($destination, polyline=[${polyline.length}])"
+            }
+        }
+    }
+
+    /**
+     * Default params for [OnNavigationState] event listener
+     */
+    @Serializable
+    data object Params : KarooEventParams()
+}
+
+/**
+ * Observe the zoom level of the map
+ */
+@Serializable
+data class OnMapZoomLevel(
+    /**
+     * Zoom level: [8.0, 18.0] where smaller is more zoomed out and larger is zoomed in.
+     *
+     * Example: the map page default cycle of zooms uses value [13.0, 15.0, 16.0]
+     * but manual adjustments can go beyond this to the full range.
+     */
+    val zoomLevel: Double,
+) : KarooEvent() {
+    /**
+     * Default params for [OnMapZoomLevel] event listener
+     */
+    @Serializable
+    data object Params : KarooEventParams()
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 SRAM LLC.
+ * Copyright (c) 2025 SRAM LLC.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Tab
@@ -44,11 +47,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.hammerhead.karooext.models.KarooEffect
+import io.hammerhead.karooext.models.LaunchPinDrop
 import io.hammerhead.karooext.models.PerformHardwareAction
 import io.hammerhead.karooext.models.ReleaseAnt
 import io.hammerhead.karooext.models.RequestAnt
 import io.hammerhead.karooext.models.RideState
 import io.hammerhead.karooext.models.StreamState
+import io.hammerhead.karooext.models.Symbol
 import io.hammerhead.karooext.models.SystemNotification
 
 @Composable
@@ -137,11 +142,22 @@ fun ControlsTab(
         ) {
             Text(if (antRequested) "Release ANT" else "Request ANT")
         }
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(
+            onClick = {
+                dispatchEffect(LaunchPinDrop(Symbol.POI("work", 40.1330043, -75.5182738, type = Symbol.POI.Types.SHOPPING, name = "Work")))
+            },
+            colors = ButtonDefaults.textButtonColors(containerColor = Color.Magenta, contentColor = Color.White),
+        ) {
+            Text("Pin Drop")
+        }
     }
 }
 
 @Composable
 fun DataTab(mainData: MainData) {
+    var isPOIDialogOpen by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -150,6 +166,36 @@ fun DataTab(mainData: MainData) {
         Text(text = "Karoo System: " + if (mainData.connected) "Connected" else "Disconnected")
         Text(text = "Ride State: ${mainData.rideState}")
         Text(text = "Power: ${(mainData.power as? StreamState.Streaming)?.dataPoint?.singleValue ?: "--"}")
+        Text(text = "Navigation: ${mainData.navigationState}")
+        Button(
+            onClick = { isPOIDialogOpen = true },
+            colors = ButtonDefaults.textButtonColors(containerColor = Color.Magenta, contentColor = Color.White),
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        ) {
+            Text("Global POIs")
+        }
+        if (isPOIDialogOpen) {
+            AlertDialog(
+                onDismissRequest = { isPOIDialogOpen = false },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .verticalScroll(rememberScrollState())
+                            .padding(4.dp),
+                    ) {
+                        mainData.globalPOIs.map {
+                            Text("POI: ${it.name ?: ""} ${it.type}")
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = { isPOIDialogOpen = false }) {
+                        Text("Close")
+                    }
+                },
+                modifier = Modifier.padding(10.dp),
+            )
+        }
     }
 }
 

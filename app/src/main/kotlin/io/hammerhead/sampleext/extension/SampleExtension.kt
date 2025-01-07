@@ -21,6 +21,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import com.mapbox.geojson.Point
+import com.mapbox.geojson.utils.PolylineUtils
+import com.mapbox.turf.TurfConstants
+import com.mapbox.turf.TurfMeasurement
 import dagger.hilt.android.AndroidEntryPoint
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.KarooExtension
@@ -30,8 +34,14 @@ import io.hammerhead.karooext.models.Device
 import io.hammerhead.karooext.models.DeviceEvent
 import io.hammerhead.karooext.models.InRideAlert
 import io.hammerhead.karooext.models.KarooEffect
+import io.hammerhead.karooext.models.MapEffect
 import io.hammerhead.karooext.models.MarkLap
+import io.hammerhead.karooext.models.OnLocationChanged
+import io.hammerhead.karooext.models.OnMapZoomLevel
+import io.hammerhead.karooext.models.ShowPolyline
+import io.hammerhead.karooext.models.ShowSymbols
 import io.hammerhead.karooext.models.StreamState
+import io.hammerhead.karooext.models.Symbol
 import io.hammerhead.karooext.models.SystemNotification
 import io.hammerhead.karooext.models.UserProfile
 import io.hammerhead.sampleext.R
@@ -41,6 +51,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
@@ -106,6 +117,47 @@ class SampleExtension : KarooExtension("sample", "1.0") {
                 throw IllegalArgumentException("unknown type for $uid")
             }
         }.connect(emitter)
+    }
+
+    override fun startMap(emitter: Emitter<MapEffect>) {
+        val job = CoroutineScope(Dispatchers.IO).launch {
+            combine(karooSystem.consumerFlow<OnLocationChanged>(), karooSystem.consumerFlow<OnMapZoomLevel>()) { location, mapZoom ->
+                Pair(location, mapZoom)
+            }
+                .collect { (location, mapZoom) ->
+                    val source = Point.fromLngLat(location.lng, location.lat)
+                    val totalDistance = when {
+                        mapZoom.zoomLevel >= 15.0 -> 100.0
+                        mapZoom.zoomLevel >= 12.0 -> 200.0
+                        else -> 300.0
+                    }
+                    val dest = TurfMeasurement.destination(source, totalDistance, 45.0, TurfConstants.UNIT_METERS)
+                    val half = TurfMeasurement.destination(source, totalDistance / 2, 45.0, TurfConstants.UNIT_METERS)
+                    emitter.onNext(
+                        ShowSymbols(
+                            listOf(
+                                Symbol.POI(
+                                    id = "away",
+                                    lat = dest.latitude(),
+                                    lng = dest.longitude(),
+                                ),
+                                Symbol.Icon(
+                                    id = "half",
+                                    lat = half.latitude(),
+                                    lng = half.longitude(),
+                                    orientation = 0f,
+                                    iconRes = R.drawable.ic_arrow,
+                                ),
+                            ),
+                        ),
+                    )
+                    val polyline = PolylineUtils.encode(listOf(source, dest), 5)
+                    emitter.onNext(ShowPolyline("45", polyline, getColor(R.color.colorPrimary), 4))
+                }
+        }
+        emitter.setCancellable {
+            job.cancel()
+        }
     }
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")

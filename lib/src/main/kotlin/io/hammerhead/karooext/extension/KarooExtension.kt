@@ -30,6 +30,7 @@ import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.Device
 import io.hammerhead.karooext.models.DeviceEvent
 import io.hammerhead.karooext.models.ExtensionInfo
+import io.hammerhead.karooext.models.MapEffect
 import io.hammerhead.karooext.models.StreamState
 import io.hammerhead.karooext.models.ViewConfig
 import timber.log.Timber
@@ -43,6 +44,8 @@ import java.util.concurrent.ConcurrentHashMap
 abstract class KarooExtension(
     /**
      * Extension ID, matching [ExtensionInfo.id] from extension manifest.
+     *
+     * This is different from your application id (com.something) and cannot contain '.'
      */
     val extension: String,
     /**
@@ -51,6 +54,10 @@ abstract class KarooExtension(
     val version: String,
 ) : Service() {
     private val emitters = ConcurrentHashMap<String, Emitter<*>>()
+
+    init {
+        check(extension.none { it == '.' }) { "extension ID cannot contain '.'" }
+    }
 
     /**
      * @suppress
@@ -118,6 +125,18 @@ abstract class KarooExtension(
                 Timber.d("$TAG: stopView $id")
                 emitters.remove(id)?.cancel()
             }
+
+            override fun startMap(id: String, handler: IHandler) {
+                val emitter = Emitter.create<MapEffect>(packageName, handler)
+                emitters[id] = emitter
+                Timber.d("$TAG: startMap $id")
+                startMap(emitter)
+            }
+
+            override fun stopMap(id: String) {
+                Timber.d("$TAG: stopMap $id")
+                emitters.remove(id)?.cancel()
+            }
         }
     }
 
@@ -143,6 +162,15 @@ abstract class KarooExtension(
      * @see [DeviceEvent]
      */
     open fun connectDevice(uid: String, emitter: Emitter<DeviceEvent>) {}
+
+    /**
+     * Start providing effects for the map layer
+     *
+     * This will be called only if [ExtensionInfo] has `mapLayer` set to true
+     *
+     * @see [MapEffect]
+     */
+    open fun startMap(emitter: Emitter<MapEffect>) {}
 
     /**
      * @suppress

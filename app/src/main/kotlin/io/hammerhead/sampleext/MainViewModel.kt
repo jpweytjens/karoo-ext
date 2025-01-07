@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 SRAM LLC.
+ * Copyright (c) 2025 SRAM LLC.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,11 +28,15 @@ import io.hammerhead.karooext.models.HardwareType
 import io.hammerhead.karooext.models.HttpResponseState
 import io.hammerhead.karooext.models.KarooEffect
 import io.hammerhead.karooext.models.Lap
+import io.hammerhead.karooext.models.OnGlobalPOIs
 import io.hammerhead.karooext.models.OnHttpResponse
+import io.hammerhead.karooext.models.OnMapZoomLevel
+import io.hammerhead.karooext.models.OnNavigationState
 import io.hammerhead.karooext.models.OnStreamState
 import io.hammerhead.karooext.models.PlayBeepPattern
 import io.hammerhead.karooext.models.RideState
 import io.hammerhead.karooext.models.StreamState
+import io.hammerhead.karooext.models.Symbol
 import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.TimeoutCancellationException
@@ -60,6 +64,8 @@ data class MainData(
     val rideState: RideState? = null,
     val homeBackgroundSet: Boolean = false,
     val httpStatus: String? = null,
+    val navigationState: OnNavigationState.NavigationState? = null,
+    val globalPOIs: List<Symbol.POI> = emptyList(),
 )
 
 val json = Json {
@@ -147,6 +153,15 @@ class MainViewModel @Inject constructor(
                 }
                 karooSystem.addConsumer { rideState: RideState ->
                     mutableState.update { it.copy(rideState = rideState) }
+                }
+                karooSystem.addConsumer { navigationState: OnNavigationState ->
+                    mutableState.update { it.copy(navigationState = navigationState.state) }
+                }
+                karooSystem.addConsumer { event: OnGlobalPOIs ->
+                    mutableState.update { it.copy(globalPOIs = event.pois) }
+                }
+                karooSystem.addConsumer { zoom: OnMapZoomLevel ->
+                    Timber.i("Map zoom $zoom")
                 }
                 karooSystem.addConsumer { lap: Lap ->
                     Timber.i("Lap ${lap.number}!")
