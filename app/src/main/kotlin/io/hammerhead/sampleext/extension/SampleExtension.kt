@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 SRAM LLC.
+ * Copyright (c) 2025 SRAM LLC.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,20 +30,27 @@ import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.KarooExtension
 import io.hammerhead.karooext.internal.Emitter
 import io.hammerhead.karooext.models.DataType
+import io.hammerhead.karooext.models.DeveloperField
 import io.hammerhead.karooext.models.Device
 import io.hammerhead.karooext.models.DeviceEvent
+import io.hammerhead.karooext.models.FieldValue
+import io.hammerhead.karooext.models.FitEffect
 import io.hammerhead.karooext.models.InRideAlert
 import io.hammerhead.karooext.models.KarooEffect
 import io.hammerhead.karooext.models.MapEffect
 import io.hammerhead.karooext.models.MarkLap
 import io.hammerhead.karooext.models.OnLocationChanged
 import io.hammerhead.karooext.models.OnMapZoomLevel
+import io.hammerhead.karooext.models.RideState
 import io.hammerhead.karooext.models.ShowPolyline
 import io.hammerhead.karooext.models.ShowSymbols
 import io.hammerhead.karooext.models.StreamState
 import io.hammerhead.karooext.models.Symbol
 import io.hammerhead.karooext.models.SystemNotification
 import io.hammerhead.karooext.models.UserProfile
+import io.hammerhead.karooext.models.WriteEventMesg
+import io.hammerhead.karooext.models.WriteToRecordMesg
+import io.hammerhead.karooext.models.WriteToSessionMesg
 import io.hammerhead.sampleext.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -61,6 +68,8 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
+import kotlin.math.absoluteValue
+import kotlin.math.roundToInt
 import kotlin.reflect.full.createInstance
 
 @AndroidEntryPoint
@@ -153,6 +162,70 @@ class SampleExtension : KarooExtension("sample", "1.0") {
                     )
                     val polyline = PolylineUtils.encode(listOf(source, dest), 5)
                     emitter.onNext(ShowPolyline("45", polyline, getColor(R.color.colorPrimary), 4))
+                }
+        }
+        emitter.setCancellable {
+            job.cancel()
+        }
+    }
+
+    private val doughnutsField by lazy {
+        DeveloperField(
+            fieldDefinitionNumber = 0,
+            fitBaseTypeId = 136, // FitBaseType.Float32
+            fieldName = "Doughnuts Earned",
+            units = "doughnuts",
+        )
+    }
+
+    override fun startFit(emitter: Emitter<FitEffect>) {
+        val job = CoroutineScope(Dispatchers.IO).launch {
+            karooSystem.streamDataFlow(DataType.Type.ELAPSED_TIME)
+                .mapNotNull { (it as? StreamState.Streaming)?.dataPoint?.singleValue?.div(1000) }
+                .combine(karooSystem.consumerFlow<RideState>()) { seconds, rideState ->
+                    Pair(seconds, rideState)
+                }
+                .collect { (seconds, rideState) ->
+                    // One to start and another one earned every 20 minutes (rounded to 0.1)
+                    val doughnuts = 1 + (seconds / 120.0).roundToInt() / 10.0
+                    val doughnutsField = FieldValue(doughnutsField, doughnuts)
+                    when (rideState) {
+                        is RideState.Idle -> {}
+                        // When paused, write to SessionMesg so it's committed infrequently
+                        // Last set will be saved at end of activity
+                        is RideState.Paused -> {
+                            Timber.d("Doughnuts session now $doughnuts")
+                            emitter.onNext(WriteToSessionMesg(doughnutsField))
+                        }
+                        // When recording, write doughnuts and power to record messages
+                        is RideState.Recording -> {
+                            Timber.d("Doughnuts now $doughnuts")
+                            emitter.onNext(WriteToRecordMesg(doughnutsField))
+
+                            // Power: saw-tooth [100, 200]
+                            val fakePower = 100 + seconds.mod(200.0).minus(100).absoluteValue
+                            Timber.d("Power now $fakePower")
+                            emitter.onNext(
+                                WriteToRecordMesg(
+                                    /**
+                                     * From FIT SDK:
+                                     * public static final int PowerFieldNum = 7;
+                                     */
+                                    FieldValue(7, fakePower),
+                                ),
+                            )
+                        }
+                    }
+                    if (seconds == 42.0) {
+                        // Off-course marker at 42 seconds with doughnuts included
+                        emitter.onNext(
+                            WriteEventMesg(
+                                event = 7, // OFF_COURSE((short)7),
+                                eventType = 3, // MARKER((short)3),
+                                values = listOf(doughnutsField),
+                            )
+                        )
+                    }
                 }
         }
         emitter.setCancellable {
