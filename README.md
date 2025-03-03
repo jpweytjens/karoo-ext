@@ -5,6 +5,10 @@ cycling computers.
 
 Like other Android libraries, it can be included as a gradle dependency to provide APIs for use in Kotlin and Java code.
 
+## Community
+
+To join the conversation about Extensions on Karoo, get help from other developers, or post feature requests, visit [Hammerhead Extensions Developers](https://support.hammerhead.io/hc/en-us/community/topics/31298804001435-Hammerhead-Extensions-Developers).
+
 ## Documentation
 
 Comprehensive documentation for karoo-ext is available [here](https://hammerheadnav.github.io/karoo-ext/index.html).
