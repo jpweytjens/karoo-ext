@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 SRAM LLC.
+ * Copyright (c) 2025 SRAM LLC.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-package io.hammerhead.sampleext.extension
+package dev.jpweytjens.karoo.barberfish.extension
 
-import io.hammerhead.karooext.extension.DataTypeImpl
+import io.hammerhead.karooext.extension.KarooExtension
 
-class BespokeDataType(extension: String) : DataTypeImpl(extension, TYPE_ID) {
-    // No view or stream implementations are necessary because
-    // streaming data comes from the source and the view is standard numeric view
-
-    companion object {
-        const val TYPE_ID = "bespoke"
+class BarberfishExtension : KarooExtension("barberfish", "1.0") {
+    override val types by lazy {
+        listOf(
+            PowerHrDataType(extension),
+        )
     }
 }

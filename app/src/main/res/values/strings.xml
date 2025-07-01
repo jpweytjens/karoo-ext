@@ -1,14 +1,6 @@
 <resources>
-    <string name="app_name">karoo-ext Sample</string>
-    <string name="custom_speed">Custom Speed</string>
-    <string name="extension_name">samp EXT</string>
-    <string name="custom_speed_description">Graphical representation of speed</string>
-    <string name="power_hr">Power x HR</string>
-    <string name="power_hr_description">Ratio of power / heart rate</string>
-    <string name="alert_title">Another one!</string>
-    <string name="alert_detail">You\'re at %1$s now.</string>
-    <string name="bespoke">Bespoke</string>
-    <string name="bespoke_description">Bespoke type from sample</string>
-    <string name="double_hr">2xHR</string>
-    <string name="double_hr_description">Double HR</string>
+    <string name="app_name">Barberfish</string>
+    <string name="extension_name">Barberfish Extension</string>
+    <string name="power_hr">Power/HR Cleaner</string>
+    <string name="power_hr_description">Like barberfish cleaning sharks, this datafield removes data parasites and provides clean Power or Heart Rate readings in symbiotic harmony with your Hammerhead Karoo</string>
 </resources>
