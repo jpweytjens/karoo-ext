@@ -21,7 +21,7 @@ import io.hammerhead.karooext.extension.KarooExtension
 class BarberfishExtension : KarooExtension("barberfish", "1.0") {
     override val types by lazy {
         listOf(
-            PowerHrDataType(extension),
+            Randonneur(extension),
         )
     }
 }

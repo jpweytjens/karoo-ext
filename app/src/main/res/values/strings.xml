@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">Barberfish</string>
     <string name="extension_name">Barberfish Extension</string>
-    <string name="power_hr">Power/HR Cleaner</string>
-    <string name="power_hr_description">Like barberfish cleaning sharks, this datafield removes data parasites and provides clean Power or Heart Rate readings in symbiotic harmony with your Hammerhead Karoo</string>
+    <string name="randonneur">Randonneur</string>
+    <string name="randonneur_description">Like barberfish cleaning sharks, this datafield removes data parasites and provides true average speed including paused time - perfect for randonneuring and long-distance cycling on your Hammerhead Karoo</string>
 </resources>
