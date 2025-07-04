@@ -12,8 +12,8 @@ android {
         applicationId = "dev.jpweytjens.karoo.barberfish"
         minSdk = 23
         targetSdk = 34
-        versionCode = 2
-        versionName = "0.2"
+        versionCode = 3
+        versionName = "0.3"
     }
 
     buildTypes {
