@@ -26,7 +26,7 @@ jobs:
         id: detect_version
         run: |
           # Get current and previous versions
-          current_version=$(grep 'libVersion' lib/build.gradle.kts | sed -e 's/.*"\(.*\)".*/\1/' | head -n 1)
+          current_version=$(grep 'versionName' app/build.gradle.kts | sed -e 's/.*"\(.*\)".*/\1/' | head -n 1)
           echo "Current version in the repository: $current_version"
 
           # Check for existing tag for this version
@@ -66,22 +66,16 @@ jobs:
           tag_name: ${{ needs.check.outputs.VERSION }}
           release_name: ${{ needs.check.outputs.VERSION }}
           draft: false
-          prerelease: true
+          prerelease: false
 
-      - name: Publish library to Github packges
-        env:
-          GITHUB_USERNAME: actions
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew --no-daemon publish
-
-      - name: Upload Sample
+      - name: Upload APK
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./app/build/outputs/apk/release/app-release.apk
-          asset_name: karoo-ext-sample.apk
+          asset_name: barberfish.apk
           asset_content_type: application/vnd.android.package-archive
 
       - name: Upload Manifest
