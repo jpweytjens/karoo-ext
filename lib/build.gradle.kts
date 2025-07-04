@@ -64,7 +64,7 @@ tasks.dokkaHtml.configure {
 
     pluginConfiguration<DokkaBase, DokkaBaseConfiguration> {
         val assetsDir = rootDir.resolve("assets")
-        homepageLink = "https://github.com/hammerheadnav/karoo-ext"
+        homepageLink = "https://github.com/jpweytjens/Barberfish"
 
         footerMessage = "© ${LocalDateTime.now().year} SRAM LLC."
         customAssets = listOf(assetsDir.resolve("logo-icon.svg"))
@@ -77,7 +77,7 @@ tasks.dokkaHtml.configure {
             // https://github.com/Kotlin/dokka/issues/2876
             sourceLink {
                 localDirectory.set(projectDir.resolve("lib/src/main/kotlin"))
-                remoteUrl.set(URL("https://github.com/hammerheadnav/karoo-ext/blob/${libVersion}/lib"))
+                remoteUrl.set(URL("https://github.com/jpweytjens/Barberfish/blob/${libVersion}/lib"))
                 remoteLineSuffix.set("#L")
             }
             skipEmptyPackages.set(true)
@@ -105,7 +105,7 @@ publishing {
     repositories {
         maven {
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/hammerheadnav/karoo-ext")
+            url = uri("https://maven.pkg.github.com/jpweytjens/Barberfish")
             credentials {
                 username = System.getenv("GITHUB_USERNAME")
                 password = System.getenv("GITHUB_TOKEN")
@@ -115,7 +115,7 @@ publishing {
     publications {
         register<MavenPublication>("karoo-ext") {
             artifactId = moduleName
-            groupId = "io.hammerhead"
+            groupId = "dev.jpweytjens.karoo"
             version = libVersion
 
             afterEvaluate {
