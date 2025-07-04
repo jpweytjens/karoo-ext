@@ -3,4 +3,6 @@
     <string name="extension_name">Barberfish Extension</string>
     <string name="randonneur">Randonneur</string>
     <string name="randonneur_description">Like barberfish cleaning sharks, this datafield removes data parasites and provides true average speed including paused time - perfect for randonneuring and long-distance cycling on your Hammerhead Karoo</string>
+    <string name="triple">Triple Field</string>
+    <string name="triple_description">A customizable triple datafield that displays three Karoo data fields in equal-width columns. Configure which data fields to show through the extension settings.</string>
 </resources>

@@ -13,12 +13,14 @@
  */
 package dev.jpweytjens.karoo.barberfish.extension
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.graphics.Color
+import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.internal.Emitter
 import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.OnStreamState
 import io.hammerhead.karooext.models.StreamState
-import io.hammerhead.karooext.KarooSystemService
 
 /**
  * A randonneuring-focused data type that calculates average speed including paused time. Perfect
@@ -27,12 +29,33 @@ import io.hammerhead.karooext.KarooSystemService
  * began - essential for randonneuring events.
  */
 class Randonneur(
-        extension: String,
-        private val karooSystem: KarooSystemService,
+    extension: String,
+    private val karooSystem: KarooSystemService,
+    private val context: Context,
 ) : BespokeDataType(extension, "randonneur") {
+
+    companion object {
+        private const val PREFS_NAME = "RandonneurPrefs"
+        private const val KEY_MIN_SPEED = "min_speed"
+        private const val KEY_MAX_SPEED = "max_speed"
+        private const val DEFAULT_MIN_SPEED = 15.0
+        private const val DEFAULT_MAX_SPEED = 30.0
+    }
 
     private var currentDistance: Double = 0.0 // in meters
     private var currentRideTime: Double = 0.0 // in seconds
+
+    // Configurable speed thresholds (km/h) - loaded from SharedPreferences
+    private var minSpeedThreshold: Double = DEFAULT_MIN_SPEED
+    private var maxSpeedThreshold: Double = DEFAULT_MAX_SPEED
+
+    private val prefs: SharedPreferences by lazy {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
+
+    init {
+        loadSpeedThresholds()
+    }
 
     override fun getCurrentValue(): Double {
         return if (currentRideTime > 0) {
@@ -53,31 +76,23 @@ class Randonneur(
 
         // Subscribe to real distance data
         val distanceConsumerId = karooSystem.addConsumer<OnStreamState>(
-            OnStreamState.StartStreaming(DataType.Type.DISTANCE)
+            OnStreamState.StartStreaming(DataType.Type.DISTANCE),
         ) { streamState ->
-            when (streamState.state) {
-                is StreamState.Streaming -> {
-                    currentDistance = streamState.state.dataPoint.values[DataType.Field.DISTANCE] ?: 0.0
-                    updateCalculatedValue(emitter)
-                }
-                else -> {
-                    // Handle other stream states if needed
-                }
+            val state = streamState.state
+            if (state is StreamState.Streaming) {
+                currentDistance = state.dataPoint.values[DataType.Field.DISTANCE] ?: 0.0
+                updateCalculatedValue(emitter)
             }
         }
 
         // Subscribe to real ride time data (including paused time)
         val timeConsumerId = karooSystem.addConsumer<OnStreamState>(
-            OnStreamState.StartStreaming(DataType.Type.RIDE_TIME)
+            OnStreamState.StartStreaming(DataType.Type.RIDE_TIME),
         ) { streamState ->
-            when (streamState.state) {
-                is StreamState.Streaming -> {
-                    currentRideTime = streamState.state.dataPoint.values[DataType.Field.RIDE_TIME] ?: 0.0
-                    updateCalculatedValue(emitter)
-                }
-                else -> {
-                    // Handle other stream states if needed
-                }
+            val state = streamState.state
+            if (state is StreamState.Streaming) {
+                currentRideTime = state.dataPoint.values[DataType.Field.RIDE_TIME] ?: 0.0
+                updateCalculatedValue(emitter)
             }
         }
 
@@ -97,17 +112,19 @@ class Randonneur(
     }
 
     /**
-     * Override to provide custom zone colors suitable for randonneuring speeds. Randonneuring
-     * focuses on sustainable pacing rather than high-intensity zones.
+     * Override to provide 2-color scheme: white by default, red when outside speed thresholds.
      */
     override fun getColorForZone(zoneIndex: Int): Int {
-        return when (zoneIndex) {
-            0 -> Color.parseColor("#FF6B6B") // Very slow - Red
-            1 -> Color.parseColor("#FFE66D") // Slow - Yellow
-            2 -> Color.parseColor("#4ECDC4") // Moderate/Sustainable - Teal
-            3 -> Color.parseColor("#45B7D1") // Good pace - Blue
-            4 -> Color.parseColor("#96CEB4") // Fast pace - Green
-            else -> Color.parseColor("#FFEAA7") // Very fast - Light yellow
+        val currentSpeed = getCurrentValue()
+
+        return if (currentSpeed.isNaN() ||
+            (currentSpeed >= minSpeedThreshold && currentSpeed <= maxSpeedThreshold)
+        ) {
+            // White for normal speeds or when no data
+            Color.WHITE
+        } else {
+            // Red for speeds outside the configured range
+            Color.RED
         }
     }
 
@@ -118,6 +135,23 @@ class Randonneur(
         val distanceStr = formatDistance(currentDistance)
 
         return "$speedStr km/h avg (${distanceStr}km in $timeStr)"
+    }
+
+    /** Load speed thresholds from SharedPreferences. */
+    private fun loadSpeedThresholds() {
+        minSpeedThreshold = prefs.getFloat(KEY_MIN_SPEED, DEFAULT_MIN_SPEED.toFloat()).toDouble()
+        maxSpeedThreshold = prefs.getFloat(KEY_MAX_SPEED, DEFAULT_MAX_SPEED.toFloat()).toDouble()
+    }
+
+    /** Set speed thresholds for color coding. */
+    fun setSpeedThresholds(minSpeed: Double, maxSpeed: Double) {
+        minSpeedThreshold = minSpeed
+        maxSpeedThreshold = maxSpeed
+    }
+
+    /** Get current speed thresholds. */
+    fun getSpeedThresholds(): Pair<Double, Double> {
+        return Pair(minSpeedThreshold, maxSpeedThreshold)
     }
 
     private fun formatTime(seconds: Double): String {

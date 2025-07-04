@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="38dp"
+    android:height="38dp"
+    android:viewportWidth="38"
+    android:viewportHeight="38">
+  <!-- Triple column layout icon -->
+  <path
+      android:pathData="M4,6 L13,6 L13,32 L4,32 Z"
+      android:fillColor="#000000"/>
+  <path
+      android:pathData="M15,6 L24,6 L24,32 L15,32 Z"
+      android:fillColor="#000000"/>
+  <path
+      android:pathData="M26,6 L35,6 L35,32 L26,32 Z"
+      android:fillColor="#000000"/>
+</vector>

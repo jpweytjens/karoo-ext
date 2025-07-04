@@ -10,4 +10,10 @@
         graphical="false"
         icon="@drawable/ic_speed"
         typeId="randonneur" />
+    <DataType
+        description="@string/triple_description"
+        displayName="@string/triple"
+        graphical="true"
+        icon="@drawable/ic_triple"
+        typeId="triple" />
 </ExtensionInfo>

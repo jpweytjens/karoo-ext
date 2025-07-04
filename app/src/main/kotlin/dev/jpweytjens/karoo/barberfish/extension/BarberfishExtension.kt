@@ -16,12 +16,17 @@
 
 package dev.jpweytjens.karoo.barberfish.extension
 
+import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.KarooExtension
 
 class BarberfishExtension : KarooExtension("barberfish", "1.0") {
+
+    private val karooSystem by lazy { KarooSystemService(this) }
+
     override val types by lazy {
         listOf(
-            Randonneur(extension),
+            Randonneur(extension, karooSystem, this),
+            TripleDataField(extension, karooSystem, this),
         )
     }
 }
