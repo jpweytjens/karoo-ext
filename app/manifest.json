@@ -1,8 +1,8 @@
 {
   "label": "Barberfish",
   "packageName": "dev.jpweytjens.karoo.barberfish",
-  "iconUrl": "https://github.com/jpweytjens/barberfish/releases/latest/download/baberfish.png",
-  "latestApkUrl": "https://github.com/jpweytjens/barberfish/releases/latest/download/barberfish.apk",
+  "iconUrl": "https://github.com/jpweytjens/Barberfish/releases/latest/download/barberfish.png",
+  "latestApkUrl": "https://github.com/jpweytjens/Barberfish/releases/latest/download/app-release.apk",
   "latestVersion": "0.1",
   "latestVersionCode": 1,
   "developer": "Johannes Weytjens",
