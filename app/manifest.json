@@ -1,11 +1,11 @@
 {
-  "label": "karoo-ext Sample",
-  "packageName": "io.hammerhead.sampleext",
-  "iconUrl": "https://github.com/hammerheadnav/karoo-ext/releases/latest/download/karoo-ext-sample.png",
-  "latestApkUrl": "https://github.com/hammerheadnav/karoo-ext/releases/latest/download/karoo-ext-sample.apk",
-  "latestVersion": "2.3",
-  "latestVersionCode": 8,
-  "developer": "Hammerhead",
-  "description": "Hammerhead's Sample app from github.com/hammerheadnav/karoo-ext which demonstrates the capabilities of Karoo Extensions.\nIt won't provide much use to riders but can be a quick way to get started developing for Karoo.",
-  "releaseNotes": "Added additional events."
+  "label": "Barberfish",
+  "packageName": "dev.jpweytjens.karoo.barberfish",
+  "iconUrl": "https://github.com/jpweytjens/barberfish/releases/latest/download/baberfish.png",
+  "latestApkUrl": "https://github.com/jpweytjens/barberfish/releases/latest/download/barberfish.apk",
+  "latestVersion": "0.1",
+  "latestVersionCode": 1,
+  "developer": "Johannes Weytjens",
+  "description": "Like barberfish cleaning sharks, this extension removes data parasites from your Hammerhead Karoo. Features: Randonneur average speed including paused time, and customizable triple data field.",
+  "releaseNotes": "Initial release v0.1: Randonneur data field with configurable speed thresholds, Triple data field with customizable 3-column layout, Configuration UI for both data fields"
 }

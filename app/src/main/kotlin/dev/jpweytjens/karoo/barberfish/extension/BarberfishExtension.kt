@@ -19,7 +19,7 @@ package dev.jpweytjens.karoo.barberfish.extension
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.KarooExtension
 
-class BarberfishExtension : KarooExtension("barberfish", "1.0") {
+class BarberfishExtension : KarooExtension("barberfish", "0.1") {
 
     private val karooSystem by lazy { KarooSystemService(this) }
 
