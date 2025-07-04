@@ -112,6 +112,20 @@ class TripleDataField(
         // Create RemoteViews for triple layout
         val remoteViews = RemoteViews(context.packageName, R.layout.triple_data_field)
 
+        // Use native text sizing from ViewConfig
+        val valueTextSize = config.textSize.toFloat()
+        val labelTextSize = (config.textSize * 0.55f) // ~55% of main text size for labels
+
+        // Apply native text sizes to all value fields
+        remoteViews.setTextViewTextSize(R.id.field1_value, android.util.TypedValue.COMPLEX_UNIT_SP, valueTextSize)
+        remoteViews.setTextViewTextSize(R.id.field2_value, android.util.TypedValue.COMPLEX_UNIT_SP, valueTextSize)
+        remoteViews.setTextViewTextSize(R.id.field3_value, android.util.TypedValue.COMPLEX_UNIT_SP, valueTextSize)
+
+        // Apply native text sizes to all label fields
+        remoteViews.setTextViewTextSize(R.id.field1_label, android.util.TypedValue.COMPLEX_UNIT_SP, labelTextSize)
+        remoteViews.setTextViewTextSize(R.id.field2_label, android.util.TypedValue.COMPLEX_UNIT_SP, labelTextSize)
+        remoteViews.setTextViewTextSize(R.id.field3_label, android.util.TypedValue.COMPLEX_UNIT_SP, labelTextSize)
+
         // Configure as graphical (hide header if desired)
         emitter.onNext(UpdateGraphicConfig(showHeader = false))
 
@@ -181,21 +195,43 @@ class TripleDataField(
         val field1Text = formatFieldValueWithZone(field1Value, field1Zone, field1Config)
         remoteViews.setTextViewText(R.id.field1_value, field1Text)
         remoteViews.setTextViewText(R.id.field1_label, getFieldLabel(field1Config.dataType))
-        remoteViews.setTextColor(R.id.field1_value, getZoneColor(field1Zone, field1Config.dataType))
+        applyZoneStyling(remoteViews, R.id.field1_value, field1Zone, field1Config)
 
         // Update field 2
         val field2Text = formatFieldValueWithZone(field2Value, field2Zone, field2Config)
         remoteViews.setTextViewText(R.id.field2_value, field2Text)
         remoteViews.setTextViewText(R.id.field2_label, getFieldLabel(field2Config.dataType))
-        remoteViews.setTextColor(R.id.field2_value, getZoneColor(field2Zone, field2Config.dataType))
+        applyZoneStyling(remoteViews, R.id.field2_value, field2Zone, field2Config)
 
         // Update field 3
         val field3Text = formatFieldValueWithZone(field3Value, field3Zone, field3Config)
         remoteViews.setTextViewText(R.id.field3_value, field3Text)
         remoteViews.setTextViewText(R.id.field3_label, getFieldLabel(field3Config.dataType))
-        remoteViews.setTextColor(R.id.field3_value, getZoneColor(field3Zone, field3Config.dataType))
+        applyZoneStyling(remoteViews, R.id.field3_value, field3Zone, field3Config)
 
         emitter.updateView(remoteViews)
+    }
+
+    private fun applyZoneStyling(remoteViews: RemoteViews, viewId: Int, zone: Int, config: EnhancedFieldConfig) {
+        when (config.zoneDisplay) {
+            ZoneDisplay.COLOR, ZoneDisplay.BOTH -> {
+                if (zone > 0) {
+                    // Apply zone background color like native UI
+                    val zoneColor = getZoneColor(zone, config.dataType)
+                    remoteViews.setInt(viewId, "setBackgroundColor", zoneColor)
+                    remoteViews.setTextColor(viewId, android.graphics.Color.WHITE)
+                } else {
+                    // No zone data - use default styling
+                    remoteViews.setInt(viewId, "setBackgroundColor", android.graphics.Color.TRANSPARENT)
+                    remoteViews.setTextColor(viewId, android.graphics.Color.WHITE)
+                }
+            }
+            ZoneDisplay.NONE, ZoneDisplay.NUMBER -> {
+                // No zone coloring - use default styling
+                remoteViews.setInt(viewId, "setBackgroundColor", android.graphics.Color.TRANSPARENT)
+                remoteViews.setTextColor(viewId, android.graphics.Color.WHITE)
+            }
+        }
     }
 
     private fun formatFieldValueWithZone(value: Double, zone: Int, config: EnhancedFieldConfig): String {

@@ -20,8 +20,11 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,20 +32,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +54,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -116,121 +123,148 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background,
+            HammerheadTheme {
+                BarberfishConfigScreen()
+            }
+        }
+    }
+
+    @Composable
+    fun HammerheadTheme(content: @Composable () -> Unit) {
+        MaterialTheme(
+            colorScheme = MaterialTheme.colorScheme.copy(
+                background = Color.White,
+                surface = Color.White,
+                onBackground = Color.Black,
+                onSurface = Color.Black,
+                primary = Color(0xFF4A90E2), // Hammerhead blue
+                onPrimary = Color.White,
+            ),
+            content = content,
+        )
+    }
+
+    @Composable
+    fun BarberfishConfigScreen() {
+        val backPressedDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color.White,
+        ) {
+            Column {
+                // Header with back button and title
+                HeaderBar(
+                    title = "BARBERFISH",
+                    onBackPressed = { backPressedDispatcher?.onBackPressed() },
+                )
+
+                // Scrollable content
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
                 ) {
-                    RandonneurConfigScreen()
+                    // Randonneur Settings
+                    RandonneurSection()
+
+                    HorizontalDivider(color = Color(0xFFE0E0E0), thickness = 1.dp)
+
+                    // Triple Data Field Settings
+                    TripleDataFieldSection()
                 }
             }
         }
     }
 
     @Composable
-    fun RandonneurConfigScreen() {
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    fun HeaderBar(
+        title: String,
+        onBackPressed: () -> Unit,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Back button (gray circle like native)
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFB0B0B0))
+                    .clickable { onBackPressed() },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
 
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Title
+            Text(
+                text = title,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Black,
+            )
+        }
+    }
+
+    @Composable
+    fun RandonneurSection() {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         var minSpeed by remember {
-            mutableStateOf(prefs.getFloat(KEY_MIN_SPEED, DEFAULT_MIN_SPEED.toFloat()).toDouble().toString())
+            mutableStateOf(prefs.getFloat(KEY_MIN_SPEED, DEFAULT_MIN_SPEED.toFloat()).toString())
         }
         var maxSpeed by remember {
-            mutableStateOf(prefs.getFloat(KEY_MAX_SPEED, DEFAULT_MAX_SPEED.toFloat()).toDouble().toString())
+            mutableStateOf(prefs.getFloat(KEY_MAX_SPEED, DEFAULT_MAX_SPEED.toFloat()).toString())
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top,
-        ) {
-            Text(
-                text = "Barberfish Extension",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 24.dp),
+        SettingsSection(title = "Randonneur Average Speed") {
+            SettingsItem(
+                title = "Min Speed Threshold",
+                subtitle = "Speed below this will show in red",
+                trailing = {
+                    NativeTextField(
+                        value = minSpeed,
+                        onValueChange = {
+                            minSpeed = it
+                            saveSpeedThresholds(prefs, minSpeed, maxSpeed)
+                        },
+                        suffix = "km/h",
+                        keyboardType = KeyboardType.Number,
+                    )
+                },
             )
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                ) {
-                    Text(
-                        text = "Randonneur Speed Thresholds",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(bottom = 16.dp),
+            SettingsItem(
+                title = "Max Speed Threshold",
+                subtitle = "Speed above this will show in red",
+                trailing = {
+                    NativeTextField(
+                        value = maxSpeed,
+                        onValueChange = {
+                            maxSpeed = it
+                            saveSpeedThresholds(prefs, minSpeed, maxSpeed)
+                        },
+                        suffix = "km/h",
+                        keyboardType = KeyboardType.Number,
                     )
-
-                    Text(
-                        text = "Text color will be red when speed is below minimum or above maximum",
-                        modifier = Modifier.padding(bottom = 16.dp),
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        TextField(
-                            value = minSpeed,
-                            onValueChange = { minSpeed = it },
-                            label = { Text("Min Speed (km/h)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f),
-                        )
-
-                        TextField(
-                            value = maxSpeed,
-                            onValueChange = { maxSpeed = it },
-                            label = { Text("Max Speed (km/h)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Button(
-                            onClick = {
-                                saveSpeedThresholds(prefs, minSpeed, maxSpeed)
-                            },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text("Save")
-                        }
-
-                        Button(
-                            onClick = {
-                                minSpeed = DEFAULT_MIN_SPEED.toString()
-                                maxSpeed = DEFAULT_MAX_SPEED.toString()
-                                saveSpeedThresholds(prefs, minSpeed, maxSpeed)
-                            },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text("Reset to Default")
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Triple Data Field Configuration
-            TripleDataFieldConfig()
+                },
+            )
         }
     }
 
     @Composable
-    fun TripleDataFieldConfig() {
+    fun TripleDataFieldSection() {
         val triplePrefs = getSharedPreferences(TRIPLE_PREFS_NAME, Context.MODE_PRIVATE)
 
         var field1 by remember {
@@ -287,111 +321,159 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        SettingsSection(title = "Triple Data Field") {
+            // Field 1
+            NativeFieldConfiguration(
+                label = "Field 1",
+                selectedField = field1,
+                selectedVariant = field1Variant,
+                selectedZoneDisplay = field1ZoneDisplay,
+                onFieldSelected = { field1 = it },
+                onVariantSelected = { field1Variant = it },
+                onZoneDisplaySelected = { field1ZoneDisplay = it },
+                onSave = {
+                    saveEnhancedTripleFieldConfig(
+                        triplePrefs,
+                        field1, field1Variant, field1ZoneDisplay,
+                        field2, field2Variant, field2ZoneDisplay,
+                        field3, field3Variant, field3ZoneDisplay,
+                    )
+                },
+            )
+
+            // Field 2
+            NativeFieldConfiguration(
+                label = "Field 2",
+                selectedField = field2,
+                selectedVariant = field2Variant,
+                selectedZoneDisplay = field2ZoneDisplay,
+                onFieldSelected = { field2 = it },
+                onVariantSelected = { field2Variant = it },
+                onZoneDisplaySelected = { field2ZoneDisplay = it },
+                onSave = {
+                    saveEnhancedTripleFieldConfig(
+                        triplePrefs,
+                        field1, field1Variant, field1ZoneDisplay,
+                        field2, field2Variant, field2ZoneDisplay,
+                        field3, field3Variant, field3ZoneDisplay,
+                    )
+                },
+            )
+
+            // Field 3
+            NativeFieldConfiguration(
+                label = "Field 3",
+                selectedField = field3,
+                selectedVariant = field3Variant,
+                selectedZoneDisplay = field3ZoneDisplay,
+                onFieldSelected = { field3 = it },
+                onVariantSelected = { field3Variant = it },
+                onZoneDisplaySelected = { field3ZoneDisplay = it },
+                onSave = {
+                    saveEnhancedTripleFieldConfig(
+                        triplePrefs,
+                        field1, field1Variant, field1ZoneDisplay,
+                        field2, field2Variant, field2ZoneDisplay,
+                        field3, field3Variant, field3ZoneDisplay,
+                    )
+                },
+            )
+        }
+    }
+
+    @Composable
+    fun SettingsSection(
+        title: String,
+        content: @Composable () -> Unit,
+    ) {
+        Column {
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.Black,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+            )
+            content()
+        }
+    }
+
+    @Composable
+    fun SettingsItem(
+        title: String,
+        subtitle: String? = null,
+        trailing: @Composable (() -> Unit)? = null,
+        onClick: (() -> Unit)? = null,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .let { if (onClick != null) it.clickable { onClick() } else it }
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-            ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Triple Data Field Configuration",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(bottom = 16.dp),
+                    text = title,
+                    fontSize = 16.sp,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Normal,
                 )
-
-                Text(
-                    text = "Configure data fields, smoothing, and zone display for the triple column layout",
-                    modifier = Modifier.padding(bottom = 16.dp),
-                )
-
-                // Field 1 configuration
-                EnhancedFieldConfig(
-                    label = "Field 1",
-                    selectedField = field1,
-                    selectedVariant = field1Variant,
-                    selectedZoneDisplay = field1ZoneDisplay,
-                    onFieldSelected = { field1 = it },
-                    onVariantSelected = { field1Variant = it },
-                    onZoneDisplaySelected = { field1ZoneDisplay = it },
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Field 2 configuration
-                EnhancedFieldConfig(
-                    label = "Field 2",
-                    selectedField = field2,
-                    selectedVariant = field2Variant,
-                    selectedZoneDisplay = field2ZoneDisplay,
-                    onFieldSelected = { field2 = it },
-                    onVariantSelected = { field2Variant = it },
-                    onZoneDisplaySelected = { field2ZoneDisplay = it },
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Field 3 configuration
-                EnhancedFieldConfig(
-                    label = "Field 3",
-                    selectedField = field3,
-                    selectedVariant = field3Variant,
-                    selectedZoneDisplay = field3ZoneDisplay,
-                    onFieldSelected = { field3 = it },
-                    onVariantSelected = { field3Variant = it },
-                    onZoneDisplaySelected = { field3ZoneDisplay = it },
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Button(
-                        onClick = {
-                            saveEnhancedTripleFieldConfig(
-                                triplePrefs,
-                                field1, field1Variant, field1ZoneDisplay,
-                                field2, field2Variant, field2ZoneDisplay,
-                                field3, field3Variant, field3ZoneDisplay,
-                            )
-                        },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text("Save")
-                    }
-
-                    Button(
-                        onClick = {
-                            field1 = DataType.Type.SPEED
-                            field1Variant = TripleDataField.SmoothingVariant.RAW
-                            field1ZoneDisplay = TripleDataField.ZoneDisplay.NONE
-                            field2 = DataType.Type.HEART_RATE
-                            field2Variant = TripleDataField.SmoothingVariant.RAW
-                            field2ZoneDisplay = TripleDataField.ZoneDisplay.COLOR
-                            field3 = DataType.Type.POWER
-                            field3Variant = TripleDataField.SmoothingVariant.RAW
-                            field3ZoneDisplay = TripleDataField.ZoneDisplay.COLOR
-                            saveEnhancedTripleFieldConfig(
-                                triplePrefs,
-                                field1, field1Variant, field1ZoneDisplay,
-                                field2, field2Variant, field2ZoneDisplay,
-                                field3, field3Variant, field3ZoneDisplay,
-                            )
-                        },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text("Reset to Default")
-                    }
+                if (subtitle != null) {
+                    Text(
+                        text = subtitle,
+                        fontSize = 14.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
                 }
+            }
+
+            if (trailing != null) {
+                trailing()
             }
         }
     }
 
     @Composable
-    fun EnhancedFieldConfig(
+    fun NativeTextField(
+        value: String,
+        onValueChange: (String) -> Unit,
+        suffix: String? = null,
+        keyboardType: KeyboardType = KeyboardType.Text,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextField(
+                value = value,
+                onValueChange = onValueChange,
+                textStyle = TextStyle(
+                    fontSize = 16.sp,
+                    color = Color.Black,
+                ),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = keyboardType,
+                ),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color(0xFF4A90E2),
+                    unfocusedIndicatorColor = Color.Gray,
+                ),
+                modifier = Modifier.width(80.dp),
+            )
+            if (suffix != null) {
+                Text(
+                    text = suffix,
+                    fontSize = 14.sp,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(start = 4.dp),
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun NativeFieldConfiguration(
         label: String,
         selectedField: String,
         selectedVariant: TripleDataField.SmoothingVariant,
@@ -399,185 +481,30 @@ class MainActivity : ComponentActivity() {
         onFieldSelected: (String) -> Unit,
         onVariantSelected: (TripleDataField.SmoothingVariant) -> Unit,
         onZoneDisplaySelected: (TripleDataField.ZoneDisplay) -> Unit,
+        onSave: () -> Unit,
     ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        ) {
-            Column(
-                modifier = Modifier.padding(12.dp),
-            ) {
-                Text(
-                    text = label,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(bottom = 8.dp),
+        SettingsItem(
+            title = label,
+            subtitle = AVAILABLE_DATA_FIELDS.find { it.first == selectedField }?.second ?: "Unknown",
+            trailing = {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Configure",
+                    tint = Color.Gray,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .padding(start = 8.dp),
                 )
-
-                // Data Type selector
-                DataFieldDropdown(
-                    label = "Data Type",
-                    selectedField = selectedField,
-                    onFieldSelected = onFieldSelected,
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Smoothing variant selector (only if variants are available)
-                val availableVariants = getAvailableVariants(selectedField)
-                if (availableVariants.size > 1) {
-                    SmoothingVariantDropdown(
-                        selectedVariant = selectedVariant,
-                        availableVariants = availableVariants,
-                        onVariantSelected = onVariantSelected,
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-
-                // Zone display selector (only if zones are available)
-                val availableZoneDisplays = getAvailableZoneDisplays(selectedField)
-                if (availableZoneDisplays.size > 1) {
-                    ZoneDisplayDropdown(
-                        selectedZoneDisplay = selectedZoneDisplay,
-                        availableZoneDisplays = availableZoneDisplays,
-                        onZoneDisplaySelected = onZoneDisplaySelected,
-                    )
-                }
-            }
-        }
+            },
+            onClick = {
+                // TODO: Navigate to detailed configuration screen
+                // For now, just save current configuration
+                onSave()
+            },
+        )
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    fun DataFieldDropdown(
-        label: String,
-        selectedField: String,
-        onFieldSelected: (String) -> Unit,
-    ) {
-        var expanded by remember { mutableStateOf(false) }
-
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded },
-        ) {
-            TextField(
-                value = AVAILABLE_DATA_FIELDS.find { it.first == selectedField }?.second ?: "Unknown",
-                onValueChange = { },
-                readOnly = true,
-                label = { Text(label) },
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                },
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth(),
-            )
-
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
-                AVAILABLE_DATA_FIELDS.forEach { (fieldType, displayName) ->
-                    DropdownMenuItem(
-                        text = { Text(displayName) },
-                        onClick = {
-                            onFieldSelected(fieldType)
-                            expanded = false
-                        },
-                    )
-                }
-            }
-        }
-    }
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    fun SmoothingVariantDropdown(
-        selectedVariant: TripleDataField.SmoothingVariant,
-        availableVariants: List<TripleDataField.SmoothingVariant>,
-        onVariantSelected: (TripleDataField.SmoothingVariant) -> Unit,
-    ) {
-        var expanded by remember { mutableStateOf(false) }
-
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded },
-        ) {
-            TextField(
-                value = SMOOTHING_VARIANTS.find { it.first == selectedVariant }?.second ?: "Raw",
-                onValueChange = { },
-                readOnly = true,
-                label = { Text("Smoothing") },
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                },
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth(),
-            )
-
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
-                availableVariants.forEach { variant ->
-                    val displayName = SMOOTHING_VARIANTS.find { it.first == variant }?.second ?: variant.name
-                    DropdownMenuItem(
-                        text = { Text(displayName) },
-                        onClick = {
-                            onVariantSelected(variant)
-                            expanded = false
-                        },
-                    )
-                }
-            }
-        }
-    }
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    fun ZoneDisplayDropdown(
-        selectedZoneDisplay: TripleDataField.ZoneDisplay,
-        availableZoneDisplays: List<TripleDataField.ZoneDisplay>,
-        onZoneDisplaySelected: (TripleDataField.ZoneDisplay) -> Unit,
-    ) {
-        var expanded by remember { mutableStateOf(false) }
-
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded },
-        ) {
-            TextField(
-                value = ZONE_DISPLAY_OPTIONS.find { it.first == selectedZoneDisplay }?.second ?: "None",
-                onValueChange = { },
-                readOnly = true,
-                label = { Text("Zone Display") },
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                },
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth(),
-            )
-
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
-                availableZoneDisplays.forEach { zoneDisplay ->
-                    val displayName = ZONE_DISPLAY_OPTIONS.find { it.first == zoneDisplay }?.second ?: zoneDisplay.name
-                    DropdownMenuItem(
-                        text = { Text(displayName) },
-                        onClick = {
-                            onZoneDisplaySelected(zoneDisplay)
-                            expanded = false
-                        },
-                    )
-                }
-            }
-        }
-    }
-
+    // Utility functions
     private fun saveSpeedThresholds(prefs: SharedPreferences, minSpeed: String, maxSpeed: String) {
         try {
             val minValue = minSpeed.toDoubleOrNull() ?: DEFAULT_MIN_SPEED
@@ -590,14 +517,6 @@ class MainActivity : ComponentActivity() {
         } catch (e: Exception) {
             // Handle invalid input gracefully
         }
-    }
-
-    private fun saveTripleFieldConfig(prefs: SharedPreferences, field1: String, field2: String, field3: String) {
-        prefs.edit()
-            .putString(KEY_FIELD_1, field1)
-            .putString(KEY_FIELD_2, field2)
-            .putString(KEY_FIELD_3, field3)
-            .apply()
     }
 
     private fun saveEnhancedTripleFieldConfig(
@@ -623,26 +542,5 @@ class MainActivity : ComponentActivity() {
             .putString(KEY_FIELD_3_VARIANT, field3Variant.name.lowercase())
             .putString(KEY_FIELD_3_ZONE_DISPLAY, field3ZoneDisplay.name.lowercase())
             .apply()
-    }
-
-    private fun getAvailableVariants(dataType: String): List<TripleDataField.SmoothingVariant> {
-        return when (dataType) {
-            DataType.Type.SPEED -> listOf(TripleDataField.SmoothingVariant.RAW, TripleDataField.SmoothingVariant.SMOOTH_3S, TripleDataField.SmoothingVariant.SMOOTH_5S, TripleDataField.SmoothingVariant.SMOOTH_10S)
-            DataType.Type.POWER -> listOf(TripleDataField.SmoothingVariant.RAW, TripleDataField.SmoothingVariant.SMOOTH_3S, TripleDataField.SmoothingVariant.SMOOTH_5S, TripleDataField.SmoothingVariant.SMOOTH_10S, TripleDataField.SmoothingVariant.SMOOTH_30S)
-            DataType.Type.CADENCE -> listOf(TripleDataField.SmoothingVariant.RAW, TripleDataField.SmoothingVariant.SMOOTH_3S, TripleDataField.SmoothingVariant.SMOOTH_5S, TripleDataField.SmoothingVariant.SMOOTH_10S)
-            DataType.Type.HEART_RATE -> listOf(TripleDataField.SmoothingVariant.RAW)
-            else -> listOf(TripleDataField.SmoothingVariant.RAW)
-        }
-    }
-
-    private fun getAvailableZoneDisplays(dataType: String): List<TripleDataField.ZoneDisplay> {
-        return when (dataType) {
-            DataType.Type.HEART_RATE, DataType.Type.AVERAGE_HR, DataType.Type.MAX_HR,
-            DataType.Type.POWER, DataType.Type.AVERAGE_POWER, DataType.Type.MAX_POWER,
-            -> {
-                listOf(TripleDataField.ZoneDisplay.NONE, TripleDataField.ZoneDisplay.COLOR, TripleDataField.ZoneDisplay.NUMBER, TripleDataField.ZoneDisplay.BOTH)
-            }
-            else -> listOf(TripleDataField.ZoneDisplay.NONE)
-        }
     }
 }
