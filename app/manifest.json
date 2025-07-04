@@ -3,9 +3,9 @@
   "packageName": "dev.jpweytjens.karoo.barberfish",
   "iconUrl": "https://github.com/jpweytjens/Barberfish/releases/latest/download/barberfish.png",
   "latestApkUrl": "https://github.com/jpweytjens/Barberfish/releases/latest/download/app-release.apk",
-  "latestVersion": "0.1",
-  "latestVersionCode": 1,
+  "latestVersion": "0.2",
+  "latestVersionCode": 2,
   "developer": "Johannes Weytjens",
-  "description": "Like barberfish cleaning sharks, this extension removes data parasites from your Hammerhead Karoo. Features: Randonneur average speed including paused time, and customizable triple data field.",
-  "releaseNotes": "Initial release v0.1: Randonneur data field with configurable speed thresholds, Triple data field with customizable 3-column layout, Configuration UI for both data fields"
+  "description": "Like barberfish cleaning sharks, this extension removes data parasites from your Hammerhead Karoo. Features: Randonneur average speed including paused time, and enhanced triple data field with native Karoo integration.",
+  "releaseNotes": "Enhanced v0.2: Upgraded Triple data field with native Karoo design language, smoothing variants (3s/5s/10s/30s averages), zone colors and numbers, per-field configuration for data type/smoothing/zones. Maintains existing Randonneur functionality."
 }

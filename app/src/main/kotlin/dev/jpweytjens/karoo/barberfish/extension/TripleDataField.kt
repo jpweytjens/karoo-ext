@@ -25,11 +25,13 @@ import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.OnStreamState
 import io.hammerhead.karooext.models.StreamState
 import io.hammerhead.karooext.models.UpdateGraphicConfig
+import io.hammerhead.karooext.models.UserProfile
 import io.hammerhead.karooext.models.ViewConfig
 
 /**
- * A triple data field that displays three configurable Karoo data fields in equal-width columns.
- * Users can configure which data fields to display through the extension settings.
+ * Enhanced triple data field that displays three configurable Karoo data fields in equal-width columns.
+ * Uses native Karoo formatting and zone colors for each field.
+ * Users can configure data types, smoothing variants, and zone display through the extension settings.
  */
 class TripleDataField(
     extension: String,
@@ -42,10 +44,39 @@ class TripleDataField(
         private const val KEY_FIELD_1 = "field_1"
         private const val KEY_FIELD_2 = "field_2"
         private const val KEY_FIELD_3 = "field_3"
+        private const val KEY_FIELD_1_VARIANT = "field_1_variant"
+        private const val KEY_FIELD_2_VARIANT = "field_2_variant"
+        private const val KEY_FIELD_3_VARIANT = "field_3_variant"
+        private const val KEY_FIELD_1_ZONE_DISPLAY = "field_1_zone_display"
+        private const val KEY_FIELD_2_ZONE_DISPLAY = "field_2_zone_display"
+        private const val KEY_FIELD_3_ZONE_DISPLAY = "field_3_zone_display"
         private const val DEFAULT_FIELD_1 = DataType.Type.SPEED
         private const val DEFAULT_FIELD_2 = DataType.Type.HEART_RATE
         private const val DEFAULT_FIELD_3 = DataType.Type.POWER
+        private const val DEFAULT_VARIANT = "raw"
+        private const val DEFAULT_ZONE_DISPLAY = "none"
     }
+
+    enum class SmoothingVariant {
+        RAW,
+        SMOOTH_3S,
+        SMOOTH_5S,
+        SMOOTH_10S,
+        SMOOTH_30S,
+    }
+
+    enum class ZoneDisplay {
+        NONE,
+        COLOR,
+        NUMBER,
+        BOTH,
+    }
+
+    data class EnhancedFieldConfig(
+        val dataType: String,
+        val variant: SmoothingVariant,
+        val zoneDisplay: ZoneDisplay,
+    )
 
     private val prefs: SharedPreferences by lazy {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -56,10 +87,18 @@ class TripleDataField(
     private var field2Value: Double = Double.NaN
     private var field3Value: Double = Double.NaN
 
-    // Configured data field types
-    private var field1Type: String = DEFAULT_FIELD_1
-    private var field2Type: String = DEFAULT_FIELD_2
-    private var field3Type: String = DEFAULT_FIELD_3
+    // Current zone values for each field
+    private var field1Zone: Int = 0
+    private var field2Zone: Int = 0
+    private var field3Zone: Int = 0
+
+    // Enhanced field configurations
+    private var field1Config: EnhancedFieldConfig = EnhancedFieldConfig(DEFAULT_FIELD_1, SmoothingVariant.RAW, ZoneDisplay.NONE)
+    private var field2Config: EnhancedFieldConfig = EnhancedFieldConfig(DEFAULT_FIELD_2, SmoothingVariant.RAW, ZoneDisplay.NONE)
+    private var field3Config: EnhancedFieldConfig = EnhancedFieldConfig(DEFAULT_FIELD_3, SmoothingVariant.RAW, ZoneDisplay.NONE)
+
+    // User profile for zone colors
+    private var userProfile: UserProfile? = null
 
     init {
         loadFieldConfiguration()
@@ -76,41 +115,57 @@ class TripleDataField(
         // Configure as graphical (hide header if desired)
         emitter.onNext(UpdateGraphicConfig(showHeader = false))
 
+        // Subscribe to user profile for zone colors
+        val userProfileConsumer = karooSystem.addConsumer<UserProfile>(
+            UserProfile.Params,
+        ) { profile ->
+            userProfile = profile
+            updateTripleView(remoteViews, emitter)
+        }
+
         // Subscribe to field 1
+        val field1DataType = getDataTypeForConfig(field1Config)
         val consumer1 = karooSystem.addConsumer<OnStreamState>(
-            OnStreamState.StartStreaming(field1Type),
+            OnStreamState.StartStreaming(field1DataType),
         ) { streamState ->
             val state = streamState.state
             if (state is StreamState.Streaming) {
-                field1Value = state.dataPoint.values[getFieldForType(field1Type)] ?: Double.NaN
+                field1Value = state.dataPoint.values[getFieldForType(field1DataType)] ?: Double.NaN
+                // Extract zone information if available
+                field1Zone = extractZoneFromStreamState(state, field1Config.dataType)
                 updateTripleView(remoteViews, emitter)
             }
         }
 
         // Subscribe to field 2
+        val field2DataType = getDataTypeForConfig(field2Config)
         val consumer2 = karooSystem.addConsumer<OnStreamState>(
-            OnStreamState.StartStreaming(field2Type),
+            OnStreamState.StartStreaming(field2DataType),
         ) { streamState ->
             val state = streamState.state
             if (state is StreamState.Streaming) {
-                field2Value = state.dataPoint.values[getFieldForType(field2Type)] ?: Double.NaN
+                field2Value = state.dataPoint.values[getFieldForType(field2DataType)] ?: Double.NaN
+                field2Zone = extractZoneFromStreamState(state, field2Config.dataType)
                 updateTripleView(remoteViews, emitter)
             }
         }
 
         // Subscribe to field 3
+        val field3DataType = getDataTypeForConfig(field3Config)
         val consumer3 = karooSystem.addConsumer<OnStreamState>(
-            OnStreamState.StartStreaming(field3Type),
+            OnStreamState.StartStreaming(field3DataType),
         ) { streamState ->
             val state = streamState.state
             if (state is StreamState.Streaming) {
-                field3Value = state.dataPoint.values[getFieldForType(field3Type)] ?: Double.NaN
+                field3Value = state.dataPoint.values[getFieldForType(field3DataType)] ?: Double.NaN
+                field3Zone = extractZoneFromStreamState(state, field3Config.dataType)
                 updateTripleView(remoteViews, emitter)
             }
         }
 
         // Set up cleanup
         emitter.setCancellable {
+            karooSystem.removeConsumer(userProfileConsumer)
             karooSystem.removeConsumer(consumer1)
             karooSystem.removeConsumer(consumer2)
             karooSystem.removeConsumer(consumer3)
@@ -123,27 +178,30 @@ class TripleDataField(
 
     private fun updateTripleView(remoteViews: RemoteViews, emitter: ViewEmitter) {
         // Update field 1
-        remoteViews.setTextViewText(R.id.field1_value, formatFieldValue(field1Value, field1Type))
-        remoteViews.setTextViewText(R.id.field1_label, getFieldLabel(field1Type))
-        remoteViews.setTextColor(R.id.field1_value, getFieldColor(field1Value, field1Type))
+        val field1Text = formatFieldValueWithZone(field1Value, field1Zone, field1Config)
+        remoteViews.setTextViewText(R.id.field1_value, field1Text)
+        remoteViews.setTextViewText(R.id.field1_label, getFieldLabel(field1Config.dataType))
+        remoteViews.setTextColor(R.id.field1_value, getZoneColor(field1Zone, field1Config.dataType))
 
         // Update field 2
-        remoteViews.setTextViewText(R.id.field2_value, formatFieldValue(field2Value, field2Type))
-        remoteViews.setTextViewText(R.id.field2_label, getFieldLabel(field2Type))
-        remoteViews.setTextColor(R.id.field2_value, getFieldColor(field2Value, field2Type))
+        val field2Text = formatFieldValueWithZone(field2Value, field2Zone, field2Config)
+        remoteViews.setTextViewText(R.id.field2_value, field2Text)
+        remoteViews.setTextViewText(R.id.field2_label, getFieldLabel(field2Config.dataType))
+        remoteViews.setTextColor(R.id.field2_value, getZoneColor(field2Zone, field2Config.dataType))
 
         // Update field 3
-        remoteViews.setTextViewText(R.id.field3_value, formatFieldValue(field3Value, field3Type))
-        remoteViews.setTextViewText(R.id.field3_label, getFieldLabel(field3Type))
-        remoteViews.setTextColor(R.id.field3_value, getFieldColor(field3Value, field3Type))
+        val field3Text = formatFieldValueWithZone(field3Value, field3Zone, field3Config)
+        remoteViews.setTextViewText(R.id.field3_value, field3Text)
+        remoteViews.setTextViewText(R.id.field3_label, getFieldLabel(field3Config.dataType))
+        remoteViews.setTextColor(R.id.field3_value, getZoneColor(field3Zone, field3Config.dataType))
 
         emitter.updateView(remoteViews)
     }
 
-    private fun formatFieldValue(value: Double, dataType: String): String {
+    private fun formatFieldValueWithZone(value: Double, zone: Int, config: EnhancedFieldConfig): String {
         if (value.isNaN()) return "--"
 
-        return when (dataType) {
+        val formattedValue = when (config.dataType) {
             DataType.Type.SPEED, DataType.Type.AVERAGE_SPEED, DataType.Type.MAX_SPEED -> {
                 "%.1f".format(value)
             }
@@ -163,6 +221,14 @@ class TripleDataField(
                 formatTime(value)
             }
             else -> "%.1f".format(value)
+        }
+
+        // Add zone information if configured
+        return when (config.zoneDisplay) {
+            ZoneDisplay.NONE -> formattedValue
+            ZoneDisplay.COLOR -> formattedValue // Color handled separately
+            ZoneDisplay.NUMBER -> if (zone > 0) "$formattedValue Z$zone" else formattedValue
+            ZoneDisplay.BOTH -> if (zone > 0) "$formattedValue Z$zone" else formattedValue
         }
     }
 
@@ -189,14 +255,34 @@ class TripleDataField(
         }
     }
 
-    private fun getFieldColor(value: Double, dataType: String): Int {
-        if (value.isNaN()) return Color.GRAY
+    private fun getZoneColor(zone: Int, dataType: String): Int {
+        val profile = userProfile
+        if (profile == null || zone <= 0) {
+            return Color.WHITE
+        }
 
-        // Use different colors based on data type for better readability
+        // Use actual zone colors from user profile
         return when (dataType) {
-            DataType.Type.HEART_RATE, DataType.Type.AVERAGE_HR, DataType.Type.MAX_HR -> Color.RED
-            DataType.Type.POWER, DataType.Type.AVERAGE_POWER, DataType.Type.MAX_POWER -> Color.YELLOW
-            DataType.Type.SPEED, DataType.Type.AVERAGE_SPEED, DataType.Type.MAX_SPEED -> Color.GREEN
+            DataType.Type.HEART_RATE, DataType.Type.AVERAGE_HR, DataType.Type.MAX_HR -> {
+                getZoneColorFromProfile(zone, profile.heartRateZones)
+            }
+            DataType.Type.POWER, DataType.Type.AVERAGE_POWER, DataType.Type.MAX_POWER -> {
+                getZoneColorFromProfile(zone, profile.powerZones)
+            }
+            else -> Color.WHITE
+        }
+    }
+
+    private fun getZoneColorFromProfile(zone: Int, zones: List<UserProfile.Zone>): Int {
+        // Use predefined zone colors that match Karoo's color scheme
+        return when (zone) {
+            1 -> Color.parseColor("#808080") // Gray
+            2 -> Color.parseColor("#0080FF") // Blue
+            3 -> Color.parseColor("#00FF00") // Green
+            4 -> Color.parseColor("#FFFF00") // Yellow
+            5 -> Color.parseColor("#FF8000") // Orange
+            6 -> Color.parseColor("#FF0000") // Red
+            7 -> Color.parseColor("#FF00FF") // Magenta
             else -> Color.WHITE
         }
     }
@@ -235,26 +321,116 @@ class TripleDataField(
     }
 
     private fun loadFieldConfiguration() {
-        field1Type = prefs.getString(KEY_FIELD_1, DEFAULT_FIELD_1) ?: DEFAULT_FIELD_1
-        field2Type = prefs.getString(KEY_FIELD_2, DEFAULT_FIELD_2) ?: DEFAULT_FIELD_2
-        field3Type = prefs.getString(KEY_FIELD_3, DEFAULT_FIELD_3) ?: DEFAULT_FIELD_3
+        field1Config = EnhancedFieldConfig(
+            prefs.getString(KEY_FIELD_1, DEFAULT_FIELD_1) ?: DEFAULT_FIELD_1,
+            SmoothingVariant.valueOf(prefs.getString(KEY_FIELD_1_VARIANT, DEFAULT_VARIANT)?.uppercase() ?: DEFAULT_VARIANT.uppercase()),
+            ZoneDisplay.valueOf(prefs.getString(KEY_FIELD_1_ZONE_DISPLAY, DEFAULT_ZONE_DISPLAY)?.uppercase() ?: DEFAULT_ZONE_DISPLAY.uppercase()),
+        )
+
+        field2Config = EnhancedFieldConfig(
+            prefs.getString(KEY_FIELD_2, DEFAULT_FIELD_2) ?: DEFAULT_FIELD_2,
+            SmoothingVariant.valueOf(prefs.getString(KEY_FIELD_2_VARIANT, DEFAULT_VARIANT)?.uppercase() ?: DEFAULT_VARIANT.uppercase()),
+            ZoneDisplay.valueOf(prefs.getString(KEY_FIELD_2_ZONE_DISPLAY, DEFAULT_ZONE_DISPLAY)?.uppercase() ?: DEFAULT_ZONE_DISPLAY.uppercase()),
+        )
+
+        field3Config = EnhancedFieldConfig(
+            prefs.getString(KEY_FIELD_3, DEFAULT_FIELD_3) ?: DEFAULT_FIELD_3,
+            SmoothingVariant.valueOf(prefs.getString(KEY_FIELD_3_VARIANT, DEFAULT_VARIANT)?.uppercase() ?: DEFAULT_VARIANT.uppercase()),
+            ZoneDisplay.valueOf(prefs.getString(KEY_FIELD_3_ZONE_DISPLAY, DEFAULT_ZONE_DISPLAY)?.uppercase() ?: DEFAULT_ZONE_DISPLAY.uppercase()),
+        )
+    }
+
+    private fun getDataTypeForConfig(config: EnhancedFieldConfig): String {
+        return when (config.variant) {
+            SmoothingVariant.RAW -> config.dataType
+            SmoothingVariant.SMOOTH_3S -> getSmoothedDataType(config.dataType, "3s")
+            SmoothingVariant.SMOOTH_5S -> getSmoothedDataType(config.dataType, "5s")
+            SmoothingVariant.SMOOTH_10S -> getSmoothedDataType(config.dataType, "10s")
+            SmoothingVariant.SMOOTH_30S -> getSmoothedDataType(config.dataType, "30s")
+        }
+    }
+
+    private fun getSmoothedDataType(baseType: String, interval: String): String {
+        return when (baseType) {
+            DataType.Type.SPEED -> when (interval) {
+                "3s" -> DataType.Type.SMOOTHED_3S_AVERAGE_SPEED
+                "5s" -> DataType.Type.SMOOTHED_5S_AVERAGE_SPEED
+                "10s" -> DataType.Type.SMOOTHED_10S_AVERAGE_SPEED
+                else -> baseType
+            }
+            DataType.Type.POWER -> when (interval) {
+                "3s" -> DataType.Type.SMOOTHED_3S_AVERAGE_POWER
+                "5s" -> DataType.Type.SMOOTHED_5S_AVERAGE_POWER
+                "10s" -> DataType.Type.SMOOTHED_10S_AVERAGE_POWER
+                "30s" -> DataType.Type.SMOOTHED_30S_AVERAGE_POWER
+                else -> baseType
+            }
+            DataType.Type.CADENCE -> when (interval) {
+                "3s" -> DataType.Type.SMOOTHED_3S_AVERAGE_CADENCE
+                "5s" -> DataType.Type.SMOOTHED_5S_AVERAGE_CADENCE
+                "10s" -> DataType.Type.SMOOTHED_10S_AVERAGE_CADENCE
+                else -> baseType
+            }
+            else -> baseType
+        }
+    }
+
+    private fun extractZoneFromStreamState(state: StreamState.Streaming, dataType: String): Int {
+        return when (dataType) {
+            DataType.Type.HEART_RATE, DataType.Type.AVERAGE_HR, DataType.Type.MAX_HR -> {
+                state.dataPoint.values[DataType.Field.HR_ZONE]?.toInt() ?: 0
+            }
+            DataType.Type.POWER, DataType.Type.AVERAGE_POWER, DataType.Type.MAX_POWER -> {
+                state.dataPoint.values[DataType.Field.POWER_ZONE]?.toInt() ?: 0
+            }
+            else -> 0
+        }
     }
 
     /** Get current field configuration. */
-    fun getFieldConfiguration(): Triple<String, String, String> {
-        return Triple(field1Type, field2Type, field3Type)
+    fun getFieldConfiguration(): Triple<EnhancedFieldConfig, EnhancedFieldConfig, EnhancedFieldConfig> {
+        return Triple(field1Config, field2Config, field3Config)
     }
 
     /** Set field configuration. */
-    fun setFieldConfiguration(field1: String, field2: String, field3: String) {
-        field1Type = field1
-        field2Type = field2
-        field3Type = field3
+    fun setFieldConfiguration(field1: EnhancedFieldConfig, field2: EnhancedFieldConfig, field3: EnhancedFieldConfig) {
+        field1Config = field1
+        field2Config = field2
+        field3Config = field3
 
         prefs.edit()
-            .putString(KEY_FIELD_1, field1)
-            .putString(KEY_FIELD_2, field2)
-            .putString(KEY_FIELD_3, field3)
+            .putString(KEY_FIELD_1, field1.dataType)
+            .putString(KEY_FIELD_1_VARIANT, field1.variant.name.lowercase())
+            .putString(KEY_FIELD_1_ZONE_DISPLAY, field1.zoneDisplay.name.lowercase())
+            .putString(KEY_FIELD_2, field2.dataType)
+            .putString(KEY_FIELD_2_VARIANT, field2.variant.name.lowercase())
+            .putString(KEY_FIELD_2_ZONE_DISPLAY, field2.zoneDisplay.name.lowercase())
+            .putString(KEY_FIELD_3, field3.dataType)
+            .putString(KEY_FIELD_3_VARIANT, field3.variant.name.lowercase())
+            .putString(KEY_FIELD_3_ZONE_DISPLAY, field3.zoneDisplay.name.lowercase())
             .apply()
+    }
+
+    /** Get available smoothing variants for a data type. */
+    fun getAvailableVariants(dataType: String): List<SmoothingVariant> {
+        return when (dataType) {
+            DataType.Type.SPEED -> listOf(SmoothingVariant.RAW, SmoothingVariant.SMOOTH_3S, SmoothingVariant.SMOOTH_5S, SmoothingVariant.SMOOTH_10S)
+            DataType.Type.POWER -> listOf(SmoothingVariant.RAW, SmoothingVariant.SMOOTH_3S, SmoothingVariant.SMOOTH_5S, SmoothingVariant.SMOOTH_10S, SmoothingVariant.SMOOTH_30S)
+            DataType.Type.CADENCE -> listOf(SmoothingVariant.RAW, SmoothingVariant.SMOOTH_3S, SmoothingVariant.SMOOTH_5S, SmoothingVariant.SMOOTH_10S)
+            DataType.Type.HEART_RATE -> listOf(SmoothingVariant.RAW) // HR typically doesn't need smoothing
+            else -> listOf(SmoothingVariant.RAW)
+        }
+    }
+
+    /** Get available zone display options for a data type. */
+    fun getAvailableZoneDisplays(dataType: String): List<ZoneDisplay> {
+        return when (dataType) {
+            DataType.Type.HEART_RATE, DataType.Type.AVERAGE_HR, DataType.Type.MAX_HR,
+            DataType.Type.POWER, DataType.Type.AVERAGE_POWER, DataType.Type.MAX_POWER,
+            -> {
+                listOf(ZoneDisplay.NONE, ZoneDisplay.COLOR, ZoneDisplay.NUMBER, ZoneDisplay.BOTH)
+            }
+            else -> listOf(ZoneDisplay.NONE)
+        }
     }
 }
