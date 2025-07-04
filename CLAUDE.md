@@ -7,10 +7,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is **Barberfish** - a Karoo Extensions project inspired by the symbiotic relationship between barberfish and sharks. Like barberfish that clean parasites and dead skin from sharks while receiving protection and food in return, this extension removes data parasites and adds useful bits to your Hammerhead Karoo.
 
 The project consists of:
-- `lib/`: The core karoo-ext library module with AIDL interfaces and Kotlin APIs  
-- `app/`: The Barberfish extension that provides a clean Power/HR datafield
+- `lib/`: The karoo-ext library module (unchanged from upstream) with AIDL interfaces and Kotlin APIs  
+- `app/`: The Barberfish extension that provides configurable data fields
 
-The Barberfish extension demonstrates a minimal, production-ready Karoo extension that alternates between displaying Power and Heart Rate readings in a symbiotic relationship with your Karoo device.
+The Barberfish extension demonstrates a production-ready Karoo extension with enhanced data fields including a true average speed calculator (Randonneur) and a configurable triple data field with native Karoo integration.
 
 ## Development Commands
 
@@ -67,10 +67,11 @@ The Barberfish extension demonstrates a minimal, production-ready Karoo extensio
 - **System Service** (`KarooSystemService.kt`): Main API for connecting to Karoo OS
 
 **Barberfish App (`app/`)**:
-- **MainActivity.kt**: Simple Compose UI for the Barberfish extension
-- **Extension Package** (`extension/`): Minimal extension implementation
+- **MainActivity.kt**: Jetpack Compose configuration UI for the Barberfish extension
+- **Extension Package** (`extension/`): Barberfish extension implementation
   - BarberfishExtension: Main extension class
-  - PowerHrDataType: Alternating Power/Heart Rate datafield
+  - Randonneur: True average speed data field including paused time
+  - TripleDataField: Enhanced three-column data field with native Karoo integration
 
 ### Key Patterns
 

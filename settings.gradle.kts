@@ -34,6 +34,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "karoo-ext"
+rootProject.name = "Barberfish"
 include(":lib", ":app")
  
